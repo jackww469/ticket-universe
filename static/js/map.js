@@ -1,57 +1,421 @@
 /**
- * 地图页：足迹地图展示
+ * 足迹地图页：使用 ECharts 实现中国地图
  */
 (function () {
+    // ==================== 配置 ====================
+    var COLORS = {
+        primary: '#8B5A2B',
+        primaryLight: '#B07B45',
+        unvisited: '#EDE7DD',
+        visited: '#B07B45',
+        hover: '#8B5A2B',
+        cityDot: '#C84C61',
+        cityGlow: 'rgba(200, 76, 97, 0.18)'
+    };
+
+    // ==================== 中国城市坐标映射 ====================
+    var CITY_COORDINATES = {
+        // 直辖市
+        '北京': [116.4074, 39.9042],
+        '天津': [117.2008, 39.0853],
+        '上海': [121.4737, 31.2304],
+        '重庆': [106.5516, 29.5630],
+
+        // 省会城市
+        '石家庄': [114.5149, 38.0428],
+        '太原': [112.5490, 37.8570],
+        '呼和浩特': [111.7499, 40.8424],
+        '沈阳': [123.4291, 41.7968],
+        '长春': [125.3245, 43.8171],
+        '哈尔滨': [126.5384, 45.8152],
+        '南京': [118.7969, 32.0603],
+        '杭州': [120.1551, 30.2741],
+        '合肥': [117.2272, 31.8206],
+        '福州': [119.3000, 26.0753],
+        '南昌': [115.8581, 28.6829],
+        '济南': [116.9941, 36.6653],
+        '郑州': [113.6254, 34.7466],
+        '武汉': [114.3055, 30.5931],
+        '长沙': [112.9388, 28.2282],
+        '广州': [113.2644, 23.1291],
+        '南宁': [108.3661, 22.8178],
+        '海口': [110.1999, 20.0444],
+        '成都': [104.0655, 30.6598],
+        '贵阳': [106.7092, 26.6470],
+        '昆明': [102.8349, 24.8827],
+        '拉萨': [91.1171, 29.6476],
+        '西安': [108.9402, 34.3416],
+        '兰州': [103.8343, 36.0611],
+        '西宁': [101.7782, 36.6171],
+        '银川': [106.2591, 38.4680],
+        '乌鲁木齐': [87.6177, 43.8266],
+        '香港': [114.1694, 22.3193],
+        '澳门': [113.5491, 22.1991],
+        '台北': [121.5654, 25.0330],
+
+        // 地级市
+        '青岛': [120.3826, 36.0671],
+        '威海': [122.1206, 37.5093],
+        '烟台': [121.4479, 37.4638],
+        '大连': [121.6147, 38.9140],
+        '苏州': [120.5853, 31.2990],
+        '无锡': [120.3055, 31.5701],
+        '常州': [119.9740, 31.8112],
+        '宁波': [121.5440, 29.8683],
+        '温州': [120.6994, 28.0006],
+        '厦门': [118.0894, 24.4798],
+        '深圳': [114.0579, 22.5431],
+        '珠海': [113.5537, 22.1248],
+        '东莞': [113.7445, 23.0215],
+        '佛山': [113.1227, 23.0288],
+        '中山': [113.3826, 22.5171],
+        '惠州': [114.4158, 23.1115],
+        '汕头': [116.6819, 23.3540],
+        '三亚': [109.5119, 18.2528],
+        '桂林': [110.2901, 25.2738],
+        '丽江': [100.2298, 26.8724],
+        '大理': [100.2679, 25.6065],
+        '秦皇岛': [119.5883, 39.9305],
+        '承德': [117.9382, 40.9528],
+        '保定': [115.4574, 38.8434],
+        '沧州': [116.8387, 38.3035],
+        '廊坊': [116.6838, 39.5380],
+        '唐山': [118.1802, 39.6309],
+        '邯郸': [114.5391, 36.6258],
+        '邢台': [114.5043, 37.0682],
+        '衡水': [115.6699, 37.7392],
+        '张家口': [114.8861, 40.7687],
+        '大同': [113.2953, 40.0903],
+        '朔州': [112.4334, 39.3313],
+        '忻州': [112.7336, 38.4159],
+        '晋中': [112.7527, 37.6870],
+        '阳泉': [113.5805, 37.8564],
+        '长治': [113.1163, 36.1954],
+        '晋城': [112.8513, 35.4907],
+        '临汾': [111.5190, 36.0880],
+        '吕梁': [111.1441, 37.5191],
+        '运城': [111.0070, 35.0267],
+        '包头': [109.8404, 40.6571],
+        '乌海': [106.7946, 39.6554],
+        '赤峰': [118.8869, 42.2576],
+        '通辽': [122.2433, 43.6529],
+        '鄂尔多斯': [109.7813, 39.6083],
+        '呼伦贝尔': [119.7663, 49.2116],
+        '巴彦淖尔': [107.3877, 40.7432],
+        '乌兰察布': [113.1128, 41.0341],
+        '兴安盟': [122.0488, 46.0766],
+        '锡林郭勒盟': [116.0469, 43.9333],
+        '阿拉善盟': [105.7286, 38.8511],
+        '鞍山': [122.9942, 41.1086],
+        '抚顺': [123.9572, 41.8807],
+        '本溪': [123.7649, 41.2956],
+        '丹东': [124.3385, 40.0010],
+        '锦州': [121.1269, 41.0953],
+        '营口': [122.2352, 40.6674],
+        '阜新': [121.6709, 42.0217],
+        '辽阳': [123.1727, 41.2686],
+        '盘锦': [122.0707, 41.1199],
+        '铁岭': [123.8417, 42.2860],
+        '朝阳': [120.4512, 41.5768],
+        '葫芦岛': [120.8378, 40.7110],
+        '吉林': [126.5494, 43.8378],
+        '四平': [124.3507, 43.1666],
+        '辽源': [125.1436, 42.9025],
+        '通化': [125.9398, 41.7284],
+        '白山': [126.4278, 41.9425],
+        '松原': [124.8236, 45.1418],
+        '白城': [122.8411, 45.6196],
+        '延边': [129.5090, 42.8913],
+        '齐齐哈尔': [123.9180, 47.3543],
+        '鸡西': [130.9695, 45.2950],
+        '鹤岗': [130.2977, 47.3500],
+        '双鸭山': [131.1591, 46.6434],
+        '大庆': [125.0218, 46.5799],
+        '伊春': [128.8994, 47.7276],
+        '佳木斯': [130.3184, 46.8020],
+        '七台河': [130.9533, 45.7706],
+        '牡丹江': [129.6331, 44.5513],
+        '黑河': [127.5287, 50.2447],
+        '绥化': [126.9689, 46.6541],
+        '大兴安岭': [124.1203, 51.9616],
+        '徐州': [117.2842, 34.2058],
+        '南通': [120.8943, 31.9812],
+        '连云港': [119.2216, 34.5967],
+        '淮安': [119.0153, 33.6104],
+        '盐城': [120.1639, 33.3476],
+        '扬州': [119.4129, 32.3932],
+        '镇江': [119.4248, 32.2048],
+        '泰州': [119.9230, 32.4555],
+        '宿迁': [118.2752, 33.9631],
+        '嘉兴': [120.7604, 30.7485],
+        '湖州': [120.0934, 30.8673],
+        '绍兴': [120.5801, 30.0302],
+        '金华': [119.6491, 29.0095],
+        '衢州': [118.8595, 28.9700],
+        '舟山': [122.1064, 30.0160],
+        '台州': [121.4209, 28.6563],
+        '丽水': [119.9230, 28.4678],
+        '芜湖': [118.4337, 31.3529],
+        '蚌埠': [117.3886, 32.9177],
+        '淮南': [116.9997, 32.6259],
+        '马鞍山': [118.5070, 31.6703],
+        '淮北': [116.7946, 33.9562],
+        '铜陵': [117.8121, 30.9409],
+        '安庆': [117.0634, 30.5431],
+        '黄山': [118.3380, 29.7290],
+        '滁州': [118.3170, 32.3037],
+        '阜阳': [115.8149, 32.8901],
+        '宿州': [116.9644, 33.6465],
+        '六安': [116.3120, 31.7389],
+        '亳州': [115.7785, 33.8443],
+        '池州': [117.4917, 30.6648],
+        '宣城': [118.7584, 30.9405],
+        '莆田': [119.0076, 25.4540],
+        '三明': [117.6391, 26.2635],
+        '泉州': [118.6757, 24.8744],
+        '漳州': [117.6473, 24.5132],
+        '南平': [118.1783, 26.6425],
+        '龙岩': [117.0173, 25.0751],
+        '宁德': [119.5476, 26.6656],
+        '景德镇': [117.1784, 29.2692],
+        '萍乡': [113.8545, 27.6229],
+        '九江': [116.0017, 29.7051],
+        '新余': [114.9171, 27.8179],
+        '鹰潭': [117.0694, 28.2607],
+        '赣州': [114.9332, 25.8453],
+        '吉安': [114.9795, 27.1136],
+        '宜春': [114.4164, 27.8157],
+        '抚州': [116.3581, 27.9492],
+        '上饶': [117.9435, 28.4568],
+        '淄博': [118.0548, 36.8131],
+        '枣庄': [117.3237, 34.8106],
+        '东营': [118.6746, 37.4346],
+        '烟台': [121.4479, 37.4638],
+        '潍坊': [119.1619, 36.7068],
+        '济宁': [116.5871, 35.4142],
+        '泰安': [117.0891, 36.1880],
+        '日照': [119.5269, 35.4164],
+        '临沂': [118.3543, 35.1047],
+        '德州': [116.3575, 37.4348],
+        '聊城': [115.9854, 36.4567],
+        '滨州': [118.0194, 37.3826],
+        '菏泽': [115.4411, 35.2332],
+        '开封': [114.3414, 34.7971],
+        '洛阳': [112.4540, 34.6197],
+        '平顶山': [113.1925, 33.7661],
+        '安阳': [114.3929, 36.0969],
+        '鹤壁': [114.2972, 35.7479],
+        '新乡': [113.9260, 35.3030],
+        '焦作': [113.2419, 35.2159],
+        '濮阳': [115.0293, 35.7618],
+        '许昌': [113.8524, 34.0359],
+        '漯河': [114.0166, 33.5818],
+        '三门峡': [111.2001, 34.7723],
+        '南阳': [112.5283, 33.0578],
+        '商丘': [115.6564, 34.4146],
+        '信阳': [114.0913, 32.1472],
+        '周口': [114.6497, 33.6237],
+        '驻马店': [114.0245, 33.0115],
+        '济源': [112.5900, 35.0674],
+        '黄石': [115.0389, 30.1999],
+        '十堰': [110.7982, 32.6294],
+        '宜昌': [111.2868, 30.6918],
+        '襄阳': [112.1227, 32.0089],
+        '鄂州': [114.8946, 30.3915],
+        '荆门': [112.2043, 31.0354],
+        '孝感': [113.9169, 30.9271],
+        '荆州': [112.2396, 30.3263],
+        '黄冈': [114.8726, 30.4532],
+        '咸宁': [114.3222, 29.8412],
+        '随州': [113.3826, 31.6904],
+        '恩施': [109.4881, 30.2723],
+        '仙桃': [113.4539, 30.3649],
+        '潜江': [112.9003, 30.4022],
+        '天门': [113.1660, 30.6633],
+        '神农架': [110.6755, 31.7445],
+        '株洲': [113.1340, 27.8274],
+        '湘潭': [112.9444, 27.8295],
+        '衡阳': [112.5720, 26.8934],
+        '邵阳': [111.4674, 27.2392],
+        '岳阳': [113.1288, 29.3571],
+        '常德': [111.6986, 29.0317],
+        '张家界': [110.4795, 29.1175],
+        '益阳': [112.3551, 28.5539],
+        '郴州': [113.0149, 25.7700],
+        '永州': [111.6130, 26.4196],
+        '怀化': [109.9774, 27.5495],
+        '娄底': [111.9932, 27.6983],
+        '湘西': [109.7391, 28.3046],
+        '韶关': [113.7115, 24.8105],
+        '湛江': [110.3594, 21.2707],
+        '肇庆': [112.4652, 23.0473],
+        '江门': [113.0815, 22.5781],
+        '茂名': [110.9254, 21.6720],
+        '梅州': [116.1175, 24.2889],
+        '汕尾': [115.3644, 22.7868],
+        '河源': [114.7007, 23.7437],
+        '阳江': [111.9756, 21.8574],
+        '清远': [113.0560, 23.6820],
+        '潮州': [116.6228, 23.6565],
+        '揭阳': [116.3728, 23.5499],
+        '云浮': [112.0445, 22.9375],
+        '柳州': [109.4285, 24.3263],
+        '梧州': [111.2791, 23.4850],
+        '北海': [109.1193, 21.4735],
+        '防城港': [108.3545, 21.6898],
+        '钦州': [108.6543, 21.9816],
+        '贵港': [109.5989, 23.1114],
+        '玉林': [110.1810, 22.6540],
+        '百色': [106.6181, 23.9023],
+        '贺州': [111.5673, 24.4034],
+        '河池': [108.0853, 24.6929],
+        '来宾': [109.2216, 23.7501],
+        '崇左': [107.3647, 22.4041],
+        '攀枝花': [101.7186, 26.5823],
+        '泸州': [105.4423, 28.8717],
+        '德阳': [104.3979, 31.1265],
+        '绵阳': [104.6796, 31.4675],
+        '广元': [105.8446, 32.4355],
+        '遂宁': [105.5929, 30.5331],
+        '内江': [105.0584, 29.5832],
+        '乐山': [103.7655, 29.5521],
+        '南充': [106.1107, 30.8373],
+        '眉山': [103.8486, 30.0755],
+        '宜宾': [104.6418, 28.7518],
+        '广安': [106.6333, 30.4553],
+        '达州': [107.4678, 31.2093],
+        '雅安': [103.0010, 29.9877],
+        '巴中': [106.7577, 31.8672],
+        '资阳': [104.6279, 30.1281],
+        '阿坝': [102.2245, 31.9002],
+        '甘孜': [101.9628, 30.0496],
+        '凉山': [102.2675, 27.8817],
+        '六盘水': [104.8332, 26.5927],
+        '遵义': [106.9274, 27.7256],
+        '安顺': [105.9477, 26.2456],
+        '毕节': [105.2805, 27.3019],
+        '铜仁': [109.1917, 27.7183],
+        '黔西南': [104.9065, 25.0880],
+        '黔东南': [107.9854, 26.5839],
+        '黔南': [107.5224, 26.2582],
+        '曲靖': [103.7965, 25.4899],
+        '玉溪': [102.5451, 24.3511],
+        '保山': [99.1671, 25.1118],
+        '昭通': [103.7172, 27.3433],
+        '丽江': [100.2298, 26.8724],
+        '普洱': [100.9660, 22.8252],
+        '临沧': [100.0868, 23.8838],
+        '楚雄': [101.5287, 25.0454],
+        '红河': [103.3841, 23.3637],
+        '文山': [104.2448, 23.3696],
+        '西双版纳': [100.7972, 22.3418],
+        '大理': [100.2679, 25.6065],
+        '德宏': [98.5854, 24.4333],
+        '怒江': [98.8564, 25.8176],
+        '迪庆': [99.7029, 27.8186],
+        '拉萨': [91.1171, 29.6476],
+        '日喀则': [88.8850, 29.2676],
+        '昌都': [97.1785, 31.1369],
+        '林芝': [94.3624, 29.6487],
+        '山南': [91.7664, 29.2360],
+        '那曲': [92.0517, 31.4760],
+        '阿里': [80.1050, 32.5008],
+        '西安': [108.9402, 34.3416],
+        '铜川': [108.9459, 34.8979],
+        '宝鸡': [107.2377, 34.3615],
+        '咸阳': [108.7089, 34.3295],
+        '渭南': [109.5092, 34.4996],
+        '延安': [109.4898, 36.5855],
+        '汉中': [107.0281, 33.0676],
+        '榆林': [109.7349, 38.2852],
+        '安康': [109.0296, 32.6854],
+        '商洛': [109.9403, 33.8700],
+        '兰州': [103.8343, 36.0611],
+        '嘉峪关': [98.2893, 39.7726],
+        '金昌': [102.1881, 38.5206],
+        '白银': [104.1386, 36.5449],
+        '天水': [105.7245, 34.5806],
+        '武威': [102.6374, 37.9283],
+        '张掖': [100.4491, 38.9259],
+        '平凉': [106.6848, 35.5428],
+        '酒泉': [98.4943, 39.7326],
+        '庆阳': [107.6384, 35.7344],
+        '定西': [104.6264, 35.5806],
+        '陇南': [104.9215, 33.3885],
+        '临夏': [103.2100, 35.6011],
+        '甘南': [102.9110, 34.9823],
+        '西宁': [101.7782, 36.6171],
+        '海东': [102.1042, 36.5028],
+        '海北': [100.9011, 36.9547],
+        '黄南': [102.0153, 35.5199],
+        '海南州': [100.6197, 36.2803],
+        '果洛': [100.2449, 34.4714],
+        '玉树': [97.0067, 33.0042],
+        '海西': [97.3707, 37.3745],
+        '银川': [106.2591, 38.4680],
+        '石嘴山': [106.3832, 39.0145],
+        '吴忠': [106.1991, 37.9976],
+        '固原': [106.2852, 36.0041],
+        '中卫': [105.1967, 37.5001],
+        '乌鲁木齐': [87.6177, 43.8266],
+        '克拉玛依': [84.8739, 45.5950],
+        '吐鲁番': [89.1893, 42.9513],
+        '哈密': [93.5152, 42.8185],
+        '昌吉': [87.3080, 44.0116],
+        '博尔塔拉': [82.0740, 44.9064],
+        '巴音郭楞': [86.1500, 41.7640],
+        '阿克苏': [80.2634, 41.1673],
+        '克孜勒苏': [76.1688, 39.7143],
+        '喀什': [75.9899, 39.4705],
+        '和田': [79.9222, 37.1108],
+        '伊犁': [81.3243, 43.9180],
+        '塔城': [82.9749, 46.7517],
+        '阿勒泰': [88.1397, 47.8483],
+        '石河子': [86.0411, 44.3060],
+        '阿拉尔': [81.2859, 40.5472],
+        '图木舒克': [79.0745, 39.8672],
+        '五家渠': [87.5430, 44.1678],
+        '北屯': [87.8243, 47.3532],
+        '铁门关': [85.6763, 41.7874],
+        '双河': [82.3535, 44.8405],
+        '可克达拉': [80.9977, 43.9451],
+        '昆玉': [79.2871, 37.2094],
+        '胡杨河': [84.8289, 44.6933]
+    };
+
+    // ==================== 省份映射 ====================
+    var PROVINCE_MAP = {
+        '北京': '北京', '天津': '天津', '河北': '河北', '山西': '山西',
+        '内蒙古': '内蒙古', '辽宁': '辽宁', '吉林': '吉林', '黑龙江': '黑龙江',
+        '上海': '上海', '江苏': '江苏', '浙江': '浙江', '安徽': '安徽',
+        '福建': '福建', '江西': '江西', '山东': '山东', '河南': '河南',
+        '湖北': '湖北', '湖南': '湖南', '广东': '广东', '广西': '广西',
+        '海南': '海南', '重庆': '重庆', '四川': '四川', '贵州': '贵州',
+        '云南': '云南', '西藏': '西藏', '陕西': '陕西', '甘肃': '甘肃',
+        '青海': '青海', '宁夏': '宁夏', '新疆': '新疆', '台湾': '台湾',
+        '香港': '香港', '澳门': '澳门'
+    };
+
+    // ECharts 实例
+    var chart = null;
+
+    // 数据状态
+    var allData = [];
+    var cityStats = { provinces: [], cities: [] };
+    var chinaJson = null;
+
+    // DOM 元素
     var mapView = document.getElementById('mapView');
     var mapLoading = document.getElementById('mapLoading');
-    var mapPlaceholder = document.getElementById('mapPlaceholder');
-    var chinaSvg = document.getElementById('chinaSvg');
-    var mapSidebar = document.getElementById('mapSidebar');
+    var echartsMap = document.getElementById('echartsMap');
     var provinceList = document.getElementById('provinceList');
-    var provinceFilter = document.getElementById('provinceFilter');
     var provinceLoading = document.getElementById('provinceLoading');
+    var provinceCountBadge = document.getElementById('provinceCountBadge');
     var statCities = document.getElementById('statCities');
     var statProvinces = document.getElementById('statProvinces');
     var statTotal = document.getElementById('statTotal');
 
-    var allData = [];
-    var cityStats = { provinces: [], cities: [] };
-
-    // 中国省份与简称映射
-    var PROVINCE_MAP = {
-        '北京': 'BJ', '天津': 'TJ', '河北': 'HE', '山西': 'SX',
-        '内蒙古': 'NM', '辽宁': 'LN', '吉林': 'JL', '黑龙江': 'HL',
-        '上海': 'SH', '江苏': 'JS', '浙江': 'ZJ', '安徽': 'AH',
-        '福建': 'FJ', '江西': 'JX', '山东': 'SD', '河南': 'HA',
-        '湖北': 'HB', '湖南': 'HN', '广东': 'GD', '广西': 'GX',
-        '海南': 'HI', '重庆': 'CQ', '四川': 'SC', '贵州': 'GZ',
-        '云南': 'YN', '西藏': 'XZ', '陕西': 'SN', '甘肃': 'GS',
-        '青海': 'QH', '宁夏': 'NX', '新疆': 'XJ', '台湾': 'TW',
-        '香港': 'HK', '澳门': 'MO'
-    };
-
-    // 简写到省份名的反向映射
-    var CODE_TO_PROVINCE = {};
-    for (var p in PROVINCE_MAP) {
-        CODE_TO_PROVINCE[PROVINCE_MAP[p]] = p;
-    }
-
-    // 省份中心点坐标（简化版，用于在 SVG 上定位）
-    var PROVINCE_POSITIONS = {
-        'BJ': { x: 630, y: 200 }, 'TJ': { x: 640, y: 220 }, 'HE': { x: 580, y: 220 },
-        'SX': { x: 560, y: 260 }, 'NM': { x: 480, y: 180 }, 'LN': { x: 640, y: 160 },
-        'JL': { x: 680, y: 140 }, 'HL': { x: 650, y: 80 }, 'SH': { x: 660, y: 320 },
-        'JS': { x: 630, y: 300 }, 'ZJ': { x: 650, y: 360 }, 'AH': { x: 610, y: 320 },
-        'FJ': { x: 640, y: 420 }, 'JX': { x: 600, y: 380 }, 'SD': { x: 600, y: 270 },
-        'HA': { x: 570, y: 300 }, 'HB': { x: 570, y: 330 }, 'HN': { x: 570, y: 400 },
-        'GD': { x: 580, y: 450 }, 'GX': { x: 520, y: 450 }, 'HI': { x: 540, y: 510 },
-        'CQ': { x: 500, y: 360 }, 'SC': { x: 480, y: 380 }, 'GZ': { x: 500, y: 430 },
-        'YN': { x: 450, y: 450 }, 'XZ': { x: 350, y: 350 }, 'SN': { x: 500, y: 280 },
-        'GS': { x: 420, y: 290 }, 'QH': { x: 380, y: 300 }, 'NX': { x: 450, y: 270 },
-        'XJ': { x: 200, y: 250 }, 'TW': { x: 680, y: 450 }, 'HK': { x: 580, y: 480 },
-        'MO': { x: 565, y: 485 }
-    };
-
+    // ==================== 工具函数 ====================
     function esc(s) {
         if (s == null) return '';
         var d = document.createElement('div');
@@ -59,170 +423,330 @@
         return d.innerHTML;
     }
 
-    function initMap() {
-        mapLoading.style.display = 'none';
-        if (!allData.length) {
-            mapPlaceholder.style.display = 'flex';
-            return;
-        }
-        mapPlaceholder.style.display = 'none';
-        chinaSvg.style.display = 'block';
-        renderMap();
+    // ==================== 加载地图数据 ====================
+    function loadChinaGeoJson() {
+        return fetch('/static/geojson/china.json')
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                chinaJson = data;
+                echarts.registerMap('china', data);
+                return data;
+            });
     }
 
-    function renderMap() {
-        var visitedProvinces = {};
+    // ==================== 初始化 ECharts ====================
+    function initChart() {
+        chart = echarts.init(echartsMap);
+        window.addEventListener('resize', function () {
+            chart.resize();
+        });
+    }
+
+    // ==================== 获取已访问省份 ====================
+    function getVisitedProvinces() {
+        var visited = {};
         cityStats.cities.forEach(function (c) {
             if (c.province && PROVINCE_MAP[c.province]) {
-                visitedProvinces[PROVINCE_MAP[c.province]] = true;
+                visited[PROVINCE_MAP[c.province]] = true;
+            }
+        });
+        return visited;
+    }
+
+    // ==================== 获取城市坐标数据 ====================
+    function getCityData() {
+        var visited = getVisitedProvinces();
+        var citiesWithCoords = [];
+        var skipped = [];
+
+        cityStats.cities.forEach(function (c) {
+            var coords = CITY_COORDINATES[c.city];
+            if (coords) {
+                // 获取该城市的票据数和最近日期
+                var tickets = allData.filter(function (t) { return t.city === c.city; });
+                var latestDate = '';
+                if (tickets.length > 0) {
+                    tickets.sort(function (a, b) {
+                        return (b.time || '').localeCompare(a.time || '');
+                    });
+                    latestDate = tickets[0].time || '';
+                }
+
+                citiesWithCoords.push({
+                    name: c.city,
+                    value: coords.concat([c.count || 1]),
+                    province: c.province,
+                    ticketCount: c.count || 1,
+                    latestDate: latestDate
+                });
+            } else {
+                skipped.push(c.city);
             }
         });
 
-        var html = '<svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">';
-        html += '<defs>';
-        html += '<linearGradient id="mapGrad" x1="0%" y1="0%" x2="0%" y2="100%">';
-        html += '<stop offset="0%" style="stop-color:#f8f6f1"/>';
-        html += '<stop offset="100%" style="stop-color:#e8e0d4"/>';
-        html += '</linearGradient>';
-        html += '</defs>';
-
-        // 背景
-        html += '<rect width="800" height="600" fill="url(#mapGrad)" rx="12"/>';
-
-        // 绘制省份点
-        for (var code in PROVINCE_POSITIONS) {
-            var pos = PROVINCE_POSITIONS[code];
-            var isVisited = visitedProvinces[code];
-            var provinceName = CODE_TO_PROVINCE[code];
-            var citiesInProvince = cityStats.cities.filter(function (c) {
-                return c.province === provinceName;
-            });
-            var ticketCount = citiesInProvince.reduce(function (sum, c) { return sum + c.count; }, 0);
-
-            var color = isVisited ? '#c41e3a' : '#ddd';
-            var opacity = isVisited ? 0.8 : 0.3;
-            var size = Math.min(8 + ticketCount * 2, 20);
-
-            html += '<circle class="province-dot ' + (isVisited ? 'visited' : 'default') + '" ';
-            html += 'cx="' + pos.x + '" cy="' + pos.y + '" r="' + size + '" ';
-            html += 'fill="' + color + '" opacity="' + opacity + '" ';
-            html += 'data-province="' + esc(provinceName || '') + '" ';
-            html += 'data-count="' + ticketCount + '">';
-            html += '<title>' + esc(provinceName || code) + ' - ' + ticketCount + '张票据</title>';
-            html += '</circle>';
-
-            // 省份标签（仅已访问的显示）
-            if (isVisited) {
-                html += '<text x="' + pos.x + '" y="' + (pos.y + size + 14) + '" ';
-                html += 'text-anchor="middle" font-size="11" fill="#8b4513" font-weight="500">';
-                html += esc(provinceName) + '</text>';
-            }
+        if (skipped.length > 0) {
+            console.warn('[足迹地图] 以下城市没有坐标数据:', skipped.join(', '));
         }
 
-        // 添加连接线（简单示意）
-        var visitedCodes = Object.keys(visitedProvinces);
-        if (visitedCodes.length > 1) {
-            html += '<g class="connections" opacity="0.15">';
-            for (var i = 0; i < visitedCodes.length - 1; i++) {
-                var c1 = PROVINCE_POSITIONS[visitedCodes[i]];
-                var c2 = PROVINCE_POSITIONS[visitedCodes[i + 1]];
-                if (c1 && c2) {
-                    html += '<line x1="' + c1.x + '" y1="' + c1.y + '" x2="' + c2.x + '" y2="' + c2.y + '" ';
-                    html += 'stroke="#8b4513" stroke-width="1" stroke-dasharray="4,4"/>';
+        return citiesWithCoords;
+    }
+
+    // ==================== 渲染地图 ====================
+    function renderMap() {
+        var visited = getVisitedProvinces();
+
+        // 获取城市坐标数据
+        var cityData = getCityData();
+
+        // 配置项 - 使用 geo 组件渲染地图，通过 regions 设置省份颜色
+        var visited = getVisitedProvinces();
+        var regions = Object.keys(PROVINCE_MAP).map(function (name) {
+            return {
+                name: name,
+                itemStyle: {
+                    areaColor: visited[name] ? COLORS.visited : COLORS.unvisited
+                },
+                emphasis: {
+                    itemStyle: {
+                        areaColor: COLORS.hover
+                    }
+                }
+            };
+        });
+
+        var option = {
+            tooltip: {
+                trigger: 'item',
+                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                borderColor: 'rgba(0, 0, 0, 0.1)',
+                borderWidth: 1,
+                borderRadius: 12,
+                padding: [12, 16],
+                textStyle: {
+                    color: '#2F2F2F',
+                    fontSize: 13
+                },
+                extraCssText: 'box-shadow: 0 8px 24px rgba(0,0,0,0.1);',
+                formatter: function (params) {
+                    if (params.seriesType === 'effectScatter') {
+                        // 城市 tooltip
+                        var d = params.data;
+                        return '<div style="font-weight:600;margin-bottom:8px;font-size:14px;">' +
+                            esc(d.name) + '</div>' +
+                            '<div style="color:#777;line-height:1.8;">' +
+                            '<div>所属省份：' + esc(d.province || '未知') + '</div>' +
+                            '<div>票据数量：' + d.ticketCount + ' 张</div>' +
+                            (d.latestDate ? '<div>最近到访：' + esc(d.latestDate.substring(0, 10)) + '</div>' : '') +
+                            '</div>';
+                    } else if (params.name) {
+                        // 省份 tooltip
+                        var isVisited = visited[params.name];
+                        return '<div style="font-weight:600;">' + esc(params.name) + '</div>' +
+                            '<div style="color:#777;margin-top:4px;">' +
+                            (isVisited ? '已访问' : '未访问') +
+                            '</div>';
+                    }
+                }
+            },
+            geo: {
+                map: 'china',
+                roam: true,
+                zoom: 1.15,
+                center: [105, 36],
+                scaleLimit: {
+                    min: 1,
+                    max: 6
+                },
+                itemStyle: {
+                    areaColor: COLORS.unvisited,
+                    borderColor: '#d4c4b5',
+                    borderWidth: 0.8
+                },
+                emphasis: {
+                    itemStyle: {
+                        areaColor: COLORS.hover,
+                        borderColor: COLORS.primary,
+                        borderWidth: 1.5
+                    },
+                    label: {
+                        show: false
+                    }
+                },
+                select: {
+                    disabled: true
+                },
+                regions: regions
+            },
+            series: [
+                // 城市散点层
+                {
+                    type: 'effectScatter',
+                    coordinateSystem: 'geo',
+                    data: cityData,
+                    symbolSize: function (val) {
+                        var count = val[2] || 1;
+                        return Math.min(8 + count * 2, 20);
+                    },
+                    showEffectOn: 'emphasis',
+                    rippleEffect: {
+                        brushType: 'stroke',
+                        scale: 3,
+                        period: 4
+                    },
+                    itemStyle: {
+                        color: COLORS.cityDot,
+                        shadowBlur: 12,
+                        shadowColor: COLORS.cityGlow
+                    },
+                    emphasis: {
+                        scale: 1.3,
+                        itemStyle: {
+                            shadowBlur: 20,
+                            shadowColor: 'rgba(200, 76, 97, 0.4)'
+                        }
+                    },
+                    label: {
+                        show: false
+                    }
+                }
+            ]
+        };
+
+        chart.setOption(option, true);
+
+        // 点击事件
+        chart.off('click');
+        chart.on('click', function (params) {
+            if (params.componentType === 'series') {
+                if (params.seriesType === 'effectScatter') {
+                    // 点击城市
+                    var province = params.data.province;
+                    if (province) {
+                        highlightProvince(province);
+                        scrollToProvince(province);
+                    }
+                } else if (params.seriesType === 'map') {
+                    // 点击省份
+                    highlightProvince(params.name);
+                    scrollToProvince(params.name);
                 }
             }
-            html += '</g>';
-        }
-
-        html += '</svg>';
-        chinaSvg.innerHTML = html;
-
-        // 绑定省份点点击事件
-        chinaSvg.querySelectorAll('.province-dot.visited').forEach(function (dot) {
-            dot.style.cursor = 'pointer';
-            dot.addEventListener('click', function () {
-                var prov = dot.getAttribute('data-province');
-                if (prov) {
-                    provinceFilter.value = prov;
-                    filterByProvince(prov);
-                }
-            });
         });
     }
 
+    // ==================== 渲染省份列表 ====================
     function renderProvinces() {
         provinceLoading.style.display = 'none';
+
         if (!cityStats.provinces.length) {
             provinceList.innerHTML = '<div class="empty-hint">暂无省份数据</div>';
+            provinceCountBadge.textContent = '0 个省份';
             return;
         }
 
-        // 填充筛选器
-        var optionsHtml = '<option value="">全部省份</option>';
-        cityStats.provinces.forEach(function (p) {
-            optionsHtml += '<option value="' + esc(p.province) + '">' + esc(p.province) + '</option>';
-        });
-        provinceFilter.innerHTML = optionsHtml;
-
-        renderProvinceList();
-    }
-
-    function renderProvinceList() {
-        var filterValue = provinceFilter.value;
-        var provinces = filterValue
-            ? cityStats.provinces.filter(function (p) { return p.province === filterValue; })
-            : cityStats.provinces;
-
-        if (!provinces.length) {
-            provinceList.innerHTML = '<div class="empty-hint">该省份暂无数据</div>';
-            return;
-        }
+        provinceCountBadge.textContent = cityStats.provinces.length + ' 个省份';
 
         var html = '';
-        provinces.forEach(function (p) {
-            html += '<div class="province-item" data-province="' + esc(p.province) + '">';
-            html += '<div class="province-header">';
-            html += '<span class="province-name">' + esc(p.province) + '</span>';
-            html += '<span class="province-count">' + p.ticket_count + '张 · ' + p.city_count + '城</span>';
+        cityStats.provinces.forEach(function (p) {
+            var citiesStr = p.cities ? p.cities.join('、') : '';
+            html += '<div class="province-card" data-province="' + esc(p.province) + '">';
+            html += '<div class="province-card-header">';
+            html += '<div class="province-card-icon">🏛️</div>';
+            html += '<div class="province-card-title">';
+            html += '<h4>' + esc(p.province) + '</h4>';
+            html += '<div class="province-card-stats">';
+            html += '<span class="stat-tag">🎫 ' + p.ticket_count + ' 张</span>';
+            html += '<span class="stat-tag">🏙️ ' + p.city_count + ' 城</span>';
             html += '</div>';
-            html += '<div class="province-cities">' + esc(p.cities.join('、')) + '</div>';
+            html += '</div>';
+            html += '</div>';
+            html += '<div class="province-card-cities">' + esc(citiesStr) + '</div>';
             html += '</div>';
         });
+
         provinceList.innerHTML = html;
+
+        // 绑定点击事件
+        provinceList.querySelectorAll('.province-card').forEach(function (card) {
+            card.style.cursor = 'pointer';
+            card.addEventListener('click', function () {
+                var province = card.getAttribute('data-province');
+                highlightProvince(province);
+                chart.dispatchAction({
+                    type: 'showTip',
+                    seriesIndex: 1,
+                    name: province
+                });
+            });
+        });
     }
 
-    function filterByProvince(province) {
-        renderProvinceList();
-        mapSidebar.scrollTop = 0;
+    // ==================== 高亮省份 ====================
+    function highlightProvince(provinceName) {
+        // 高亮省份卡片
+        provinceList.querySelectorAll('.province-card').forEach(function (card) {
+            if (card.getAttribute('data-province') === provinceName) {
+                card.classList.add('active');
+                card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } else {
+                card.classList.remove('active');
+            }
+        });
     }
 
-    provinceFilter.addEventListener('change', function () {
-        renderProvinceList();
-    });
-
-    // 加载数据
-    Promise.all([
-        fetch('/api/tickets/map').then(function (r) { return r.json(); }),
-        fetch('/api/stats/cities').then(function (r) { return r.json(); })
-    ]).then(function (results) {
-        var mapRes = results[0];
-        var cityRes = results[1];
-
-        if (mapRes.success && mapRes.data) {
-            allData = mapRes.data;
+    // ==================== 滚动到省份 ====================
+    function scrollToProvince(provinceName) {
+        var card = provinceList.querySelector('[data-province="' + provinceName + '"]');
+        if (card) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
-        if (cityRes.success && cityRes.data) {
-            cityStats = cityRes.data;
-            statCities.textContent = cityStats.total_cities;
-            statProvinces.textContent = cityStats.total_provinces;
-            statTotal.textContent = cityStats.cities.reduce(function (sum, c) { return sum + c.count; }, 0);
-        }
+    }
 
-        initMap();
-        renderProvinces();
-    }).catch(function () {
+    // ==================== 更新统计 ====================
+    function updateStats() {
+        statCities.textContent = cityStats.total_cities || 0;
+        statProvinces.textContent = cityStats.total_provinces || 0;
+
+        var totalTickets = 0;
+        if (cityStats.cities && cityStats.cities.length) {
+            totalTickets = cityStats.cities.reduce(function (sum, c) {
+                return sum + (c.count || 0);
+            }, 0);
+        }
+        statTotal.textContent = totalTickets;
+    }
+
+    // ==================== 初始化 ====================
+    function init() {
         mapLoading.style.display = 'none';
-        mapPlaceholder.style.display = 'flex';
-        mapPlaceholder.querySelector('p').textContent = '加载失败，请刷新重试';
-    });
+
+        Promise.all([
+            fetch('/api/tickets/map').then(function (r) { return r.json(); }),
+            fetch('/api/stats/cities').then(function (r) { return r.json(); }),
+            loadChinaGeoJson()
+        ]).then(function (results) {
+            var mapRes = results[0];
+            var cityRes = results[1];
+
+            if (mapRes.success && mapRes.data) {
+                allData = mapRes.data;
+            }
+            if (cityRes.success && cityRes.data) {
+                cityStats = cityRes.data;
+            }
+
+            updateStats();
+            initChart();
+            renderMap();
+            renderProvinces();
+
+        }).catch(function (err) {
+            console.error('加载地图数据失败:', err);
+            mapLoading.style.display = 'flex';
+            mapLoading.querySelector('span').textContent = '加载失败，请刷新重试';
+        });
+    }
+
+    // 启动
+    init();
 })();

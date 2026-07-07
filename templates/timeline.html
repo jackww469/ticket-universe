@@ -1,50 +1,192 @@
 {% extends "base.html" %}
 {% block title %}时间轴日记{% endblock %}
+{% block head %}
+<style>
+    body.timeline-page .main-content {
+        padding: 0;
+        max-width: 100%;
+    }
+</style>
+{% endblock %}
+{% block body_class %}timeline-page{% endblock %}
 {% block content %}
-<section class="page-head">
-    <h1>时间轴日记</h1>
-    <p>按时间从旧到新回顾您的票据与证书</p>
-</section>
-<div class="tl2-app" id="tl2App">
-    <div class="loading" id="timelineLoading">加载中…</div>
-    <div class="empty-state" id="timelineEmpty" style="display:none;">
-        <p>暂无票据，<a href="/upload">去上传</a></p>
-    </div>
-
+<!-- BEGIN: MainContentArea -->
+<main class="tl2-main-wrap">
+    <!-- BEGIN: LeftSidebar -->
     <aside class="tl2-sidebar" id="tl2Sidebar" style="display:none;">
-        <div class="tl2-controls">
-            <div class="tl2-control">
-                <label for="tl2MonthFilter">月份筛选</label>
-                <select id="tl2MonthFilter">
-                    <option value="">全部月份</option>
-                </select>
-            </div>
-            <div class="tl2-control">
-                <label for="tl2SearchInput">搜索票根</label>
-                <input id="tl2SearchInput" type="text" placeholder="关键词：地点 / 类型 / 备注 / OCR">
-            </div>
+        <!-- Title Section -->
+        <div class="tl2-sidebar-header">
+            <h2 class="tl2-sidebar-title">
+                时间轴日记
+                <span class="tl2-title-icon">🪶</span>
+            </h2>
+            <p class="tl2-sidebar-desc">按时间从旧到新回顾您的票据与证书</p>
         </div>
-        <div class="tl2-year-list" id="tl2YearList"></div>
+        <!-- Filters & Timeline Container -->
+        <div class="tl2-sidebar-content">
+            <!-- Filters Area -->
+            <div class="tl2-controls">
+                <!-- Month Select -->
+                <div class="tl2-control">
+                    <label class="tl2-label">月份筛选</label>
+                    <div class="tl2-select-wrap">
+                        <select id="tl2MonthFilter" class="tl2-select">
+                            <option value="">全部月份</option>
+                        </select>
+                        <svg class="tl2-select-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                        </svg>
+                    </div>
+                </div>
+                <!-- Search Input -->
+                <div class="tl2-control">
+                    <label class="tl2-label">搜索票据</label>
+                    <div class="tl2-search-wrap" id="tl2SearchWrap">
+                        <svg class="tl2-search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                        </svg>
+                        <input id="tl2SearchInput" type="text" class="tl2-search-input" placeholder="关键词：地点 / 类型 / 备注 / OCR">
+                        <button class="tl2-search-clear" id="tl2SearchClear" type="button" title="清除搜索">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="tl2-search-info" id="tl2SearchInfo"></div>
+                </div>
+            </div>
+            <!-- Timeline Area -->
+            <div class="tl2-year-list" id="tl2YearList"></div>
+        </div>
     </aside>
+    <!-- END: LeftSidebar -->
 
+    <!-- BEGIN: RightDetailView -->
     <section class="tl2-viewer" id="tl2Viewer" style="display:none;">
-        <div class="tl2-viewer-empty" id="tl2ViewerEmpty">请选择左侧时间轴上的票根</div>
-        <div class="tl2-viewer-card" id="tl2ViewerCard" style="display:none;">
-            <div class="tl2-main-image-wrap">
-                <img id="tl2MainImage" class="tl2-main-image" src="" alt="票根图片">
-            </div>
-            <div class="tl2-info">
-                <h3 id="tl2InfoTitle" class="tl2-info-title"></h3>
-                <p id="tl2InfoMeta" class="tl2-info-meta"></p>
-                <p id="tl2InfoNotes" class="tl2-info-notes"></p>
-            </div>
-            <div class="tl2-thumbs-wrap">
-                <div class="tl2-thumbs-title">同月份票根</div>
-                <div class="tl2-thumbs" id="tl2Thumbs"></div>
+        <!-- Loading State -->
+        <div class="tl2-loading" id="timelineLoading">
+            <div class="tl2-loading-spinner"></div>
+            <span>加载中…</span>
+        </div>
+        <!-- Empty State -->
+        <div class="tl2-empty-state" id="timelineEmpty" style="display:none;">
+            <div class="tl2-empty-icon">📭</div>
+            <p>暂无票据，<a href="/upload">去上传</a></p>
+        </div>
+        <!-- Empty Viewer Hint -->
+        <div class="tl2-viewer-empty" id="tl2ViewerEmpty">
+            <div class="tl2-empty-hint">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                </svg>
+                <p>请选择左侧时间轴上的票根</p>
             </div>
         </div>
+        <!-- Search No-Result State -->
+        <div class="tl2-search-no-result" id="tl2SearchNoResult" style="display:none;">
+            <div class="tl2-search-no-result-inner">
+                <div class="tl2-search-no-result-icon">🔍</div>
+                <p class="tl2-search-no-result-title">未找到匹配的票据</p>
+                <p class="tl2-search-no-result-sub">换个关键词试试，或<a href="/upload">上传新票据</a></p>
+            </div>
+        </div>
+        <!-- Ticket Detail Card -->
+        <article class="tl2-viewer-card" id="tl2ViewerCard" style="display:none;">
+            <!-- Top Image Display Area -->
+            <section class="tl2-image-section">
+                <!-- Date Badge -->
+                <div class="tl2-date-badge" id="tl2DateBadge">
+                    <div class="tl2-date-card">
+                        <div class="tl2-date-corner tl2-date-corner-tl"></div>
+                        <div class="tl2-date-corner tl2-date-corner-tr"></div>
+                        <div class="tl2-date-corner tl2-date-corner-bl"></div>
+                        <div class="tl2-date-corner tl2-date-corner-br"></div>
+                        <div class="tl2-date-year" id="tl2DateYear">2014</div>
+                        <div class="tl2-date-month" id="tl2DateMonth">08</div>
+                        <div class="tl2-date-day" id="tl2DateDay">28</div>
+                        <div class="tl2-date-weekday" id="tl2DateWeekday">周四</div>
+                    </div>
+                    <div class="tl2-date-icon">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <rect height="18" rx="2" ry="2" width="18" x="3" y="4"></rect>
+                            <line x1="16" x2="16" y1="2" y2="6"></line>
+                            <line x1="8" x2="8" y1="2" y2="6"></line>
+                            <line x1="3" x2="21" y1="10" y2="10"></line>
+                            <path d="M8 14h.01"></path>
+                            <path d="M12 14h.01"></path>
+                            <path d="M16 14h.01"></path>
+                            <path d="M8 18h.01"></path>
+                            <path d="M12 18h.01"></path>
+                            <path d="M16 18h.01"></path>
+                        </svg>
+                    </div>
+                </div>
+                <!-- Ticket Frame -->
+                <div class="tl2-ticket-frame">
+                    <div class="tl2-ticket-inner">
+                        <img id="tl2MainImage" class="tl2-main-image" src="" alt="票根图片">
+                    </div>
+                </div>
+            </section>
+
+            <!-- Metadata Grid -->
+            <section class="tl2-meta-section" id="tl2MetaSection">
+                <div class="tl2-meta-grid" id="tl2MetaGrid"></div>
+            </section>
+
+            <!-- Notes Section -->
+            <section class="tl2-notes-section" id="tl2NotesSection">
+                <div class="tl2-notes-content">
+                    <div class="tl2-notes-icon">📝</div>
+                    <div class="tl2-notes-body">
+                        <h4 class="tl2-notes-title">备注</h4>
+                        <p class="tl2-notes-meta" id="tl2NotesMeta"></p>
+                        <p class="tl2-notes-text" id="tl2NotesText">暂无备注</p>
+                    </div>
+                </div>
+                <button class="tl2-notes-edit-btn">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
+                        <path d="m15 5 4 4"></path>
+                    </svg>
+                    编辑备注
+                </button>
+            </section>
+
+            <!-- Bottom Gallery -->
+            <section class="tl2-gallery-section">
+                <h4 class="tl2-gallery-title">同月份票据</h4>
+                <div class="tl2-gallery" id="tl2Gallery">
+                    <div class="tl2-gallery-empty">本月暂无其他票据</div>
+                </div>
+            </section>
+        </article>
     </section>
-</div>
+    <!-- END: RightDetailView -->
+
+    <!-- Edit Notes Modal -->
+    <div class="tl2-notes-modal" id="tl2NotesModal">
+        <div class="tl2-notes-modal-backdrop" id="tl2NotesBackdrop"></div>
+        <div class="tl2-notes-modal-box">
+            <div class="tl2-notes-modal-head">
+                <h3>编辑备注</h3>
+                <button class="tl2-notes-modal-close" id="tl2NotesClose">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="tl2-notes-modal-body">
+                <textarea class="tl2-notes-modal-textarea" id="tl2NotesTextarea" placeholder="输入备注信息..."></textarea>
+            </div>
+            <div class="tl2-notes-modal-foot">
+                <button class="tl2-btn-cancel" id="tl2NotesCancel">取消</button>
+                <button class="tl2-btn-save" id="tl2NotesSave">保存</button>
+            </div>
+        </div>
+    </div>
+</main>
+<!-- END: MainContentArea -->
 <div id="toast" class="toast"></div>
 {% endblock %}
 {% block scripts %}

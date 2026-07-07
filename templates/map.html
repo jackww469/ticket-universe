@@ -3,44 +3,47 @@
 {% block body_class %}map-page{% endblock %}
 {% block content %}
 <section class="page-head">
-    <h1>足迹地图</h1>
+    <h1>中国足迹地图</h1>
     <p>用地图记录你去过的每一个地方</p>
 </section>
 
 <div class="map-stats-bar">
     <div class="map-stat-item">
-        <span class="map-stat-num" id="statCities">0</span>
-        <span class="map-stat-label">座城市</span>
+        <div class="map-stat-icon">🏙️</div>
+        <div class="map-stat-content">
+            <span class="map-stat-num" id="statCities">0</span>
+            <span class="map-stat-label">座城市</span>
+        </div>
     </div>
     <div class="map-stat-item">
-        <span class="map-stat-num" id="statProvinces">0</span>
-        <span class="map-stat-label">个省份</span>
+        <div class="map-stat-icon">🏛️</div>
+        <div class="map-stat-content">
+            <span class="map-stat-num" id="statProvinces">0</span>
+            <span class="map-stat-label">个省份</span>
+        </div>
     </div>
     <div class="map-stat-item">
-        <span class="map-stat-num" id="statTotal">0</span>
-        <span class="map-stat-label">张票据</span>
+        <div class="map-stat-icon">🎫</div>
+        <div class="map-stat-content">
+            <span class="map-stat-num" id="statTotal">0</span>
+            <span class="map-stat-label">张票据</span>
+        </div>
     </div>
 </div>
 
 <div class="map-container">
     <div class="map-view" id="mapView">
-        <div class="map-loading" id="mapLoading">加载地图中...</div>
-        <div class="map-placeholder" id="mapPlaceholder">
-            <div class="map-placeholder-icon">🌏</div>
-            <p>暂无足迹数据</p>
-            <a href="/upload" class="btn btn-primary">去上传票据</a>
+        <div class="map-loading" id="mapLoading">
+            <div class="loading-spinner"></div>
+            <span>加载地图中...</span>
         </div>
-        <div class="china-svg" id="chinaSvg" style="display:none;">
-            <!-- 中国地图 SVG 将通过 JS 渲染 -->
-        </div>
+        <div id="echartsMap" style="width:100%;height:100%;"></div>
     </div>
-    
+
     <aside class="map-sidebar" id="mapSidebar">
         <div class="map-sidebar-header">
-            <h3>省份列表</h3>
-            <select id="provinceFilter">
-                <option value="">全部省份</option>
-            </select>
+            <h3>📍 省份足迹</h3>
+            <span class="province-count-badge" id="provinceCountBadge">0 个省份</span>
         </div>
         <div class="province-list" id="provinceList">
             <div class="loading" id="provinceLoading">加载中...</div>
@@ -49,21 +52,23 @@
 </div>
 
 <div class="map-legend">
-    <div class="legend-title">图例</div>
-    <div class="legend-items">
-        <div class="legend-item">
-            <span class="legend-dot visited"></span>
-            <span>已访问</span>
-        </div>
-        <div class="legend-item">
-            <span class="legend-dot default"></span>
-            <span>未访问</span>
-        </div>
+    <div class="legend-item">
+        <span class="legend-swatch visited"></span>
+        <span>已访问省份</span>
+    </div>
+    <div class="legend-item">
+        <span class="legend-swatch unvisited"></span>
+        <span>未访问</span>
+    </div>
+    <div class="legend-item">
+        <span class="legend-dot city"></span>
+        <span>城市</span>
     </div>
 </div>
 
 <div id="toast" class="toast"></div>
 {% endblock %}
 {% block scripts %}
+<script src="/static/js/echarts.min.js"></script>
 <script src="/static/js/map.js"></script>
 {% endblock %}

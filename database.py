@@ -261,6 +261,21 @@ def update_ticket(ticket_id, user_id, type_, platform, time_, place, notes, imag
         return True
 
 
+def update_ticket_notes(ticket_id: int, user_id: int, notes: str) -> bool:
+    with get_db() as conn:
+        row = conn.execute(
+            'SELECT 1 FROM tickets WHERE id = ? AND user_id = ?',
+            (ticket_id, user_id),
+        ).fetchone()
+        if not row:
+            return False
+        conn.execute(
+            'UPDATE tickets SET notes = ? WHERE id = ? AND user_id = ?',
+            (notes, ticket_id, user_id),
+        )
+        return True
+
+
 def delete_ticket(ticket_id, user_id):
     with get_db() as conn:
         row = conn.execute(
@@ -607,4 +622,97 @@ def get_popular_tags(user_id: int, limit: int = 12):
                     break
 
         return tags[:limit]
+
+
+def get_memory_reminder_data(user_id: int):
+    """
+    获取记忆提醒数据：
+    - days_since_first: 距离第一次收藏的天数
+    - first_ticket: 第一张票根信息（用于预览卡片）
+    - today_memory: 去年今天的记忆（如果有）
+    """
+    import datetime
+
+    with get_db() as conn:
+        # 获取第一张票据
+        first_row = conn.execute(
+            '''SELECT id, type, platform, time, place, province, city, notes, theme_color, image_path
+               FROM tickets
+               WHERE user_id = ?
+               ORDER BY created_at ASC
+               LIMIT 1''',
+            (user_id,),
+        ).fetchone()
+
+        # 获取去年今天同一天的票据
+        today = datetime.date.today()
+        last_year_date = (today - datetime.timedelta(days=365)).strftime('%Y-%m-%d')
+        today_str = today.strftime('%m-%d')
+
+        today_rows = conn.execute(
+            '''SELECT id, type, platform, time, place, province, city, notes, theme_color, image_path
+               FROM tickets
+               WHERE user_id = ? AND time LIKE ? AND time != ?
+               ORDER BY time DESC
+               LIMIT 1''',
+            (user_id, f'%{today_str}', last_year_date),
+        ).fetchone()
+
+        result = {
+            'days_since_first': 0,
+            'first_ticket': None,
+            'today_memory': None,
+        }
+
+        if first_row:
+            first_dict = dict(first_row)
+            result['first_ticket'] = {
+                'id': first_dict.get('id'),
+                'type': first_dict.get('type'),
+                'platform': first_dict.get('platform'),
+                'time': first_dict.get('time'),
+                'place': first_dict.get('place'),
+                'province': first_dict.get('province'),
+                'city': first_dict.get('city'),
+                'notes': first_dict.get('notes'),
+                'theme_color': first_dict.get('theme_color'),
+                'image_path': first_dict.get('image_path'),
+            }
+
+            # 计算天数
+            try:
+                first_time_str = first_dict.get('time', '')
+                if first_time_str:
+                    if ' ' in first_time_str:
+                        first_date = datetime.datetime.strptime(first_time_str.split(' ')[0], '%Y-%m-%d').date()
+                    else:
+                        first_date = datetime.datetime.strptime(first_time_str, '%Y-%m-%d').date()
+                    result['days_since_first'] = (today - first_date).days
+            except (ValueError, TypeError):
+                pass
+
+        if today_rows:
+            today_dict = dict(today_rows)
+            # 解析出发地和目的地（从 place 字段，如 "杭州东 → 上海虹桥"）
+            place = today_dict.get('place', '')
+            from_place = ''
+            to_place = ''
+            if '→' in place:
+                parts = place.split('→')
+                from_place = parts[0].strip()
+                to_place = parts[1].strip() if len(parts) > 1 else ''
+
+            result['today_memory'] = {
+                'id': today_dict.get('id'),
+                'type': today_dict.get('type'),
+                'time': today_dict.get('time'),
+                'place': place,
+                'from': from_place,
+                'to': to_place,
+                'platform': today_dict.get('platform'),
+                'theme_color': today_dict.get('theme_color'),
+                'image_path': today_dict.get('image_path'),
+            }
+
+        return result
 

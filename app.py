@@ -15,14 +15,19 @@ from database import (
     get_tickets_by_time,
     search_tickets,
     update_ticket,
+    update_ticket_notes,
     delete_ticket,
     create_user,
     verify_user,
     user_owns_image_path,
+    get_user_stats,
     get_home_mini_stats,
     get_city_stats,
     get_yearly_stats,
     get_map_tickets,
+    get_featured_tickets,
+    get_top_places,
+    get_memory_reminder_data,
 )
 from ocr_service import extract_ticket_fields
 from auth_utils import login_required, login_user, logout_user, current_user_id
@@ -275,6 +280,17 @@ def api_home_widgets():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
+@app.route('/api/memory/reminder')
+@login_required
+def api_memory_reminder():
+    uid = current_user_id()
+    try:
+        data = get_memory_reminder_data(uid)
+        return jsonify({'success': True, 'data': data})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 @app.route('/api/stats/overview')
 @login_required
 def api_stats_overview():
@@ -383,6 +399,18 @@ def api_delete(ticket_id):
             except OSError:
                 pass
     return jsonify({'success': True, 'message': '删除成功'})
+
+
+@app.route('/api/tickets/<int:ticket_id>/notes', methods=['PATCH'])
+@login_required
+def api_update_notes(ticket_id):
+    uid = current_user_id()
+    data = request.get_json()
+    notes = (data.get('notes', '') or '').strip()
+    ok = update_ticket_notes(ticket_id, uid, notes)
+    if not ok:
+        return jsonify({'success': False, 'message': '票据不存在'}), 404
+    return jsonify({'success': True, 'message': '备注已更新'})
 
 
 # ---------- API：地图与统计 ----------

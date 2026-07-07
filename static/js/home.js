@@ -39,7 +39,10 @@
     if (!statTotal) return;
 
     fetch('/api/stats/overview')
-        .then(function (r) { return r.json(); })
+        .then(function (r) {
+            if (!r.ok) throw new Error('请求失败');
+            return r.json();
+        })
         .then(function (res) {
             if (res.success && res.data) {
                 var data = res.data;
@@ -54,44 +57,88 @@
                 if (statLatestNote) {
                     statLatestNote.textContent = data.latest_date ? '最新票据' : '暂无记录';
                 }
+            } else {
+                console.warn('获取统计数据失败:', res.message);
             }
         })
-        .catch(function () {});
+        .catch(function (err) {
+            console.warn('获取统计数据异常:', err.message);
+        });
 })();
 
 /**
- * 天气小部件 - 更新为新样式
+ * 记忆提醒小部件
  */
 (function () {
-    function updateWeatherWidget(data) {
-        if (!data || !data.current_condition) return;
+    var memoryDays = document.getElementById('memoryDays');
+    var memoryTicketDate = document.getElementById('memoryTicketDate');
+    var memoryTicketFrom = document.getElementById('memoryTicketFrom');
+    var memoryTicketTo = document.getElementById('memoryTicketTo');
+    var memoryTicketInfo = document.getElementById('memoryTicketInfo');
+    var memoryTodayText = document.getElementById('memoryTodayText');
+    var memoryTodayReminder = document.getElementById('memoryTodayReminder');
 
-        var current = data.current_condition[0];
-        var temp = current.temp_C + '°C';
-        var weatherCode = parseInt(current.weatherCode);
-        var desc = current.weatherDesc[0].value;
-        var minTemp = data.weather[0].mintempC;
-        var maxTemp = data.weather[0].maxtempC;
+    if (!memoryDays) return;
 
-        // 更新天气信息
-        var tempEl = document.querySelector('.weather-widget .text-4xl');
-        var descEl = document.querySelector('.weather-widget .text-lg');
-        var rangeEl = document.querySelector('.weather-widget .text-sm.text-gray-400');
+    fetch('/api/memory/reminder')
+        .then(function (r) {
+            if (!r.ok) throw new Error('请求失败');
+            return r.json();
+        })
+        .then(function (res) {
+            if (res.success && res.data) {
+                var data = res.data;
 
-        if (tempEl) tempEl.innerHTML = temp + ' <span class="text-lg font-normal text-gray-400 ml-1">' + desc + '</span>';
-        if (rangeEl) rangeEl.textContent = minTemp + '°C ~ ' + maxTemp + '°C · 空气优';
-    }
+                // 更新收藏天数
+                if (memoryDays) {
+                    memoryDays.textContent = data.days_since_first || 0;
+                }
 
-    function fetchWeather() {
-        // 默认显示北京天气
-        var url = 'https://wttr.in/Beijing?format=j1';
-        fetch(url)
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                updateWeatherWidget(data);
-            })
-            .catch(function () {});
-    }
+                // 更新第一张票根预览
+                if (data.first_ticket) {
+                    var ticket = data.first_ticket;
+                    if (memoryTicketDate) {
+                        memoryTicketDate.textContent = ticket.time || '--';
+                    }
+                    if (memoryTicketFrom && memoryTicketTo) {
+                        var place = ticket.place || '';
+                        if (place.indexOf('→') !== -1) {
+                            var parts = place.split('→');
+                            memoryTicketFrom.textContent = parts[0].trim();
+                            memoryTicketTo.textContent = parts[1].trim();
+                        } else {
+                            memoryTicketFrom.textContent = place;
+                            memoryTicketTo.textContent = '';
+                        }
+                    }
+                    if (memoryTicketInfo) {
+                        var info = ticket.platform || ticket.type || '';
+                        if (info) {
+                            memoryTicketInfo.textContent = info;
+                        } else {
+                            memoryTicketInfo.textContent = '--';
+                        }
+                    }
+                }
 
-    fetchWeather();
+                // 更新今日回忆
+                if (data.today_memory) {
+                    var today = data.today_memory;
+                    var from = today.from || '';
+                    var to = today.to || '';
+                    if (from && to) {
+                        if (memoryTodayText) {
+                            memoryTodayText.textContent = '去年今天，你收藏了一张「' + from + ' → ' + to + '」车票';
+                        }
+                    } else if (today.place) {
+                        if (memoryTodayText) {
+                            memoryTodayText.textContent = '去年今天，你收藏了一张「' + today.place + '」票据';
+                        }
+                    }
+                }
+            }
+        })
+        .catch(function (err) {
+            console.warn('获取记忆提醒数据异常:', err.message);
+        });
 })();
