@@ -433,6 +433,79 @@ def get_yearly_stats(user_id: int):
         }
 
 
+def get_user_stats(user_id: int):
+    """
+    获取用户首页统计数据
+    - total: 总票据数
+    - yearly: 今年新增票据数
+    - year_change: 较去年的变化
+    - cities: 足迹城市数
+    - latest_date: 最近更新日期
+    """
+    with get_db() as conn:
+        # 总票据数
+        total = conn.execute(
+            'SELECT COUNT(*) FROM tickets WHERE user_id = ?',
+            (user_id,),
+        ).fetchone()[0] or 0
+
+        # 当前年份
+        current_year = conn.execute(
+            "SELECT strftime('%Y','now','localtime')"
+        ).fetchone()[0]
+
+        # 今年新增
+        this_year = conn.execute(
+            '''SELECT COUNT(*) FROM tickets
+               WHERE user_id = ? AND strftime('%Y', time) = ?''',
+            (user_id, current_year),
+        ).fetchone()[0] or 0
+
+        # 去年新增
+        last_year = conn.execute(
+            '''SELECT COUNT(*) FROM tickets
+               WHERE user_id = ? AND strftime('%Y', time) = ?''',
+            (user_id, str(int(current_year) - 1)),
+        ).fetchone()[0] or 0
+
+        # 计算较去年的变化
+        if last_year > 0:
+            change = this_year - last_year
+            if change > 0:
+                year_change = f"较去年 +{change}"
+            elif change < 0:
+                year_change = f"较去年 {change}"
+            else:
+                year_change = "与去年持平"
+        else:
+            year_change = "较去年 --"
+
+        # 足迹城市数
+        cities = conn.execute(
+            '''SELECT COUNT(DISTINCT city) FROM tickets
+               WHERE user_id = ? AND city IS NOT NULL AND city != '' ''',
+            (user_id,),
+        ).fetchone()[0] or 0
+
+        # 最近更新时间
+        latest = conn.execute(
+            '''SELECT time FROM tickets
+               WHERE user_id = ? AND time IS NOT NULL
+               ORDER BY time DESC LIMIT 1''',
+            (user_id,),
+        ).fetchone()
+
+        latest_date = latest['time'] if latest else None
+
+        return {
+            'total': int(total),
+            'yearly': int(this_year),
+            'year_change': year_change,
+            'cities': int(cities),
+            'latest_date': latest_date,
+        }
+
+
 def get_map_tickets(user_id: int):
     """
     获取用于地图展示的票据数据：
@@ -451,3 +524,87 @@ def get_map_tickets(user_id: int):
         ).fetchall()
 
         return [dict(row) for row in rows]
+
+
+def get_featured_tickets(user_id: int, limit: int = 5):
+    """
+    获取精选票据（最近入库的带图片票据）
+    """
+    with get_db() as conn:
+        rows = conn.execute(
+            '''SELECT t.id, t.type, t.time, t.place, t.image_path, t.theme_color
+               FROM tickets t
+               WHERE t.user_id = ? AND t.image_path IS NOT NULL AND t.image_path != ''
+               ORDER BY t.created_at DESC
+               LIMIT ?''',
+            (user_id, limit),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+
+def get_top_places(user_id: int, limit: int = 12):
+    """
+    获取热门地点（用于首页标签云）
+    """
+    with get_db() as conn:
+        rows = conn.execute(
+            '''SELECT place, COUNT(*) as count
+               FROM tickets
+               WHERE user_id = ? AND place IS NOT NULL AND place != ''
+               GROUP BY place
+               ORDER BY count DESC
+               LIMIT ?''',
+            (user_id, limit),
+        ).fetchall()
+        return [{'place': r['place'], 'count': r['count']} for r in rows]
+
+
+def get_featured_tickets(user_id: int, limit: int = 5):
+    """
+    获取精选票根：最近入库的 5 张票据
+    """
+    with get_db() as conn:
+        rows = conn.execute(
+            '''SELECT id, type, time, place, theme_color, image_path
+               FROM tickets
+               WHERE user_id = ?
+               ORDER BY created_at DESC
+               LIMIT ?''',
+            (user_id, limit),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+
+def get_popular_tags(user_id: int, limit: int = 12):
+    """
+    获取热门标签：按地点和类型聚合统计
+    """
+    with get_db() as conn:
+        type_tags = conn.execute(
+            '''SELECT type as tag, COUNT(*) as count
+               FROM tickets WHERE user_id = ?
+               GROUP BY type
+               ORDER BY count DESC LIMIT ?''',
+            (user_id, limit),
+        ).fetchall()
+
+        place_tags = conn.execute(
+            '''SELECT place as tag, COUNT(*) as count
+               FROM tickets
+               WHERE user_id = ? AND place IS NOT NULL AND place != ''
+               GROUP BY place
+               ORDER BY count DESC LIMIT ?''',
+            (user_id, limit),
+        ).fetchall()
+
+        tags = []
+        seen = set()
+        for row in list(type_tags) + list(place_tags):
+            if row['tag'] not in seen:
+                tags.append({'tag': row['tag'], 'count': row['count']})
+                seen.add(row['tag'])
+                if len(tags) >= limit:
+                    break
+
+        return tags[:limit]
+

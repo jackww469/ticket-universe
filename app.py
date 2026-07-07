@@ -103,44 +103,44 @@ def logout():
 @app.route('/')
 @login_required
 def index():
-    return render_template('index.html', types=TICKET_TYPES)
+    return render_template('index.html', types=TICKET_TYPES, current_page='index')
 
 
 @app.route('/upload')
 @login_required
 def upload_page():
-    return render_template('upload.html', types=TICKET_TYPES[1:])
+    return render_template('upload.html', types=TICKET_TYPES[1:], current_page='upload')
 
 
 @app.route('/list')
 @login_required
 def list_page():
-    return render_template('list.html', types=TICKET_TYPES)
+    return render_template('list.html', types=TICKET_TYPES, current_page='list')
 
 
 @app.route('/timeline')
 @login_required
 def timeline_page():
-    return render_template('timeline.html', types=TICKET_TYPES)
+    return render_template('timeline.html', types=TICKET_TYPES, current_page='timeline')
 
 
 @app.route('/detail/<int:ticket_id>')
 @login_required
 def detail_page(ticket_id):
-    return render_template('detail.html', ticket_id=ticket_id, types=TICKET_TYPES[1:])
+    return render_template('detail.html', ticket_id=ticket_id, types=TICKET_TYPES[1:], current_page='list')
 
 
 # ---------- 页面路由：地图与统计 ----------
 @app.route('/map')
 @login_required
 def map_page():
-    return render_template('map.html', types=TICKET_TYPES)
+    return render_template('map.html', types=TICKET_TYPES, current_page='map')
 
 
 @app.route('/stats')
 @login_required
 def stats_page():
-    return render_template('stats.html', types=TICKET_TYPES)
+    return render_template('stats.html', types=TICKET_TYPES, current_page='stats')
 
 
 # ---------- 图片访问（仅本人数据）----------
@@ -253,6 +253,38 @@ def api_stats_mini():
     try:
         stats = get_home_mini_stats(uid)
         return jsonify({'success': True, 'data': stats})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/home/widgets')
+@login_required
+def api_home_widgets():
+    uid = current_user_id()
+    try:
+        featured = get_featured_tickets(uid, 5)
+        top_places = get_top_places(uid, 12)
+        return jsonify({
+            'success': True,
+            'data': {
+                'featured': featured,
+                'top_places': top_places,
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/stats/overview')
+@login_required
+def api_stats_overview():
+    uid = current_user_id()
+    try:
+        stats = get_user_stats(uid)
+        return jsonify({
+            'success': True,
+            'data': stats
+        })
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 

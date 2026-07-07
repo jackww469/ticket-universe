@@ -6,29 +6,93 @@
     <title>{% block title %}票夹博物馆{% endblock %} | 票夹博物馆</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@400;600&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS v3 CDN -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            brown: '#5D3A1A',
+                            light: '#FDF8F3',
+                            accent: '#B08968',
+                            card: '#FFFFFF',
+                            bg: '#FAF7F2'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Noto Sans SC', 'ui-sans-serif', 'system-ui'],
+                        serif: ['Noto Serif SC', 'serif'],
+                    },
+                    borderRadius: {
+                        'xl-plus': '1.25rem',
+                        '2xl-plus': '2rem',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .hero-gradient {
+            background: linear-gradient(105deg, #F5E6D3 0%, #FAF2E8 100%);
+        }
+        .card-shadow {
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+        }
+        .nav-link-active::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: #5D3A1A;
+        }
+    </style>
     <link rel="stylesheet" href="/static/css/style.css">
     {% block head %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
-    <header class="site-header">
-        <a href="{{ url_for('index') if session.get('user_id') else url_for('login') }}" class="logo">票夹博物馆</a>
-        <nav class="main-nav">
-            {% if session.get('user_id') %}
-            <a href="{{ url_for('index') }}">首页</a>
-            <a href="{{ url_for('upload_page') }}">上传票根</a>
-            <a href="{{ url_for('list_page') }}">我的票夹</a>
-            <a href="{{ url_for('timeline_page') }}">时间轴日记</a>
-            <a href="{{ url_for('map_page') }}">足迹地图</a>
-            <a href="{{ url_for('stats_page') }}">年度统计</a>
-            <span class="nav-user">{{ session.get('username', '用户') }}</span>
-            <a href="{{ url_for('logout') }}">退出</a>
-            {% else %}
-            <a href="{{ url_for('login') }}">登录</a>
-            <a href="{{ url_for('register') }}">注册</a>
-            {% endif %}
-        </nav>
+    {% if session.get('user_id') %}
+    <!-- Header -->
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 px-8 py-4 border-b border-gray-100">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <!-- Logo Section -->
+            <a href="{{ url_for('index') }}" class="flex items-center space-x-2" data-purpose="logo">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="票夹博物馆" class="h-8 w-auto object-contain">
+                <span class="text-xl font-bold text-brand-brown">票夹博物馆</span>
+            </a>
+            <!-- Navigation Links -->
+            <nav class="flex items-center space-x-8 text-sm font-medium text-gray-600">
+                <a class="relative text-brand-brown font-bold {% if current_page == 'index' %}nav-link-active{% else %}hover:text-brand-brown transition-colors{% endif %}" href="{{ url_for('index') }}">首页</a>
+                <a class="relative text-brand-brown font-bold {% if current_page == 'upload' %}nav-link-active{% else %}hover:text-brand-brown transition-colors{% endif %}" href="{{ url_for('upload_page') }}">上传票据</a>
+                <a class="relative text-brand-brown font-bold {% if current_page == 'list' %}nav-link-active{% else %}hover:text-brand-brown transition-colors{% endif %}" href="{{ url_for('list_page') }}">我的票夹</a>
+                <a class="relative text-brand-brown font-bold {% if current_page == 'timeline' %}nav-link-active{% else %}hover:text-brand-brown transition-colors{% endif %}" href="{{ url_for('timeline_page') }}">时间轴日记</a>
+                <a class="relative text-brand-brown font-bold {% if current_page == 'map' %}nav-link-active{% else %}hover:text-brand-brown transition-colors{% endif %}" href="{{ url_for('map_page') }}">足迹地图</a>
+                <a class="relative text-brand-brown font-bold {% if current_page == 'stats' %}nav-link-active{% else %}hover:text-brand-brown transition-colors{% endif %}" href="{{ url_for('stats_page') }}">年度统计</a>
+            </nav>
+            <!-- Right Side Actions -->
+            <div class="flex items-center space-x-5">
+                <button class="text-gray-500 hover:text-brand-brown">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+                </button>
+                <button class="text-gray-500 hover:text-brand-brown">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+                </button>
+                <div class="flex items-center space-x-2 cursor-pointer">
+                    <div class="w-8 h-8 rounded-full bg-brand-light flex items-center justify-center text-brand-brown font-bold">
+                        {{ session.get('username', 'U')[0:1].upper() }}
+                    </div>
+                    <span class="text-sm font-medium text-gray-700">{{ session.get('username', '用户') }}</span>
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+                </div>
+                <a href="{{ url_for('logout') }}" class="text-sm text-gray-500 hover:text-brand-brown">退出</a>
+            </div>
+        </div>
     </header>
+    {% endif %}
     <main class="main-content">
         {% block content %}{% endblock %}
     </main>

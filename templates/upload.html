@@ -1,85 +1,111 @@
 {% extends "base.html" %}
 {% block title %}上传票根{% endblock %}
 {% block content %}
-<div class="upload-page-wrap">
-<section class="page-head page-head-center">
+<div class="upload-page-wrap upload-page-wrap--museum">
+<section class="page-head upload-hero-head">
+    <span class="upload-eyebrow">Ticket Archive</span>
     <h1>上传新票根 / 证书</h1>
-    <p>填写信息并上传图片，保存您的票据记忆</p>
+    <p>把票根照片、地点与故事一起收进你的私人博物馆</p>
 </section>
-<form id="uploadForm" class="upload-form" enctype="multipart/form-data">
-    <div class="form-row">
-        <label for="type">票据类型 <span class="required">*</span></label>
-        <input type="text" list="typeOptions" id="type" name="type" required
-               placeholder="如：车票、演出票、景区票、证书、自定义类型">
-        <datalist id="typeOptions">
-            {% for t in types %}
-            {% if t != '全部' %}
-            <option value="{{ t }}"></option>
-            {% endif %}
-            {% endfor %}
-        </datalist>
-    </div>
-    <div class="form-row">
-        <label for="platform">来源平台</label>
-        <input type="text" id="platform" name="platform" placeholder="如：12306、大麦、猫眼">
-    </div>
-    <div class="form-row">
-        <label for="time">时间 <span class="required">*</span></label>
-        <input type="date" id="time" name="time" required>
-    </div>
-    <div class="form-row">
-        <label for="place">地点</label>
-        <input type="text" id="place" name="place" placeholder="如：国家大剧院、北京南站">
-    </div>
-    <div class="form-row form-row--inline">
-        <div class="form-row-half">
-            <label for="province">省份</label>
-            <input type="text" id="province" name="province" placeholder="如：北京、上海">
-        </div>
-        <div class="form-row-half">
-            <label for="city">城市</label>
-            <input type="text" id="city" name="city" placeholder="如：北京、深圳">
-        </div>
-    </div>
-    <div class="form-row">
-        <label for="notes">备注</label>
-        <textarea id="notes" name="notes" rows="4" placeholder="票据背景、证书用途等"></textarea>
-    </div>
-    <div class="form-row">
-        <label>图片 <span class="required">*</span></label>
-        <div class="upload-area" id="uploadArea">
-            <input type="file" id="image" name="image" accept="image/*" hidden>
-            <div class="upload-placeholder" id="uploadPlaceholder">
-                <span class="upload-icon">📷</span>
-                <span>点击或拖拽上传（≤5MB）</span>
+<form id="uploadForm" class="upload-form upload-form--split" enctype="multipart/form-data">
+    <section class="upload-preview-panel" aria-label="图片上传与预览">
+        <div class="upload-panel-card">
+            <div class="upload-panel-topline">
+                <span>票根影像</span>
+                <span>≤5MB</span>
             </div>
-            <div class="upload-preview" id="uploadPreview" style="display:none;">
-                <img id="previewImg" src="" alt="预览">
-                <button type="button" class="preview-remove" id="previewRemove">移除</button>
+            <div class="upload-area" id="uploadArea">
+                <input type="file" id="image" name="image" accept="image/*" hidden>
+                <div class="upload-placeholder" id="uploadPlaceholder">
+                    <span class="upload-icon">📷</span>
+                    <strong>点击或拖拽上传图片</strong>
+                    <span>长票根会在这里以大预览展示</span>
+                </div>
+                <div class="upload-preview" id="uploadPreview" style="display:none;">
+                    <img id="previewImg" src="" alt="预览">
+                    <button type="button" class="preview-remove" id="previewRemove">移除图片</button>
+                </div>
+            </div>
+            <div class="upload-guide-strip" aria-hidden="true">
+                <span>上传</span>
+                <span>识别</span>
+                <span>校对</span>
+                <span>收藏</span>
             </div>
         </div>
-    </div>
-    <input type="hidden" name="theme_color" id="theme_color" value="">
-    <div class="ocr-result-section" id="ocrResultSection">
-        <h3 class="ocr-section-title">识别结果</h3>
-        <p class="ocr-section-desc">自动识别后，结构化信息会填入上方字段；全文单独保存在下方，可随时校对，<strong>不会</strong>自动写入「备注」。</p>
-        <div class="ticket-theme-preview" id="themePreview" style="--preview-accent:#808080;">
-            <span class="theme-swatch" id="themeSwatch" aria-hidden="true"></span>
-            <div class="theme-preview-text">
-                <strong id="themePreviewLabel">主题：通用票根</strong>
-                <span class="theme-preview-hint" id="themePreviewHint">点击「自动识别」后根据关键词匹配主题色</span>
+    </section>
+    <section class="upload-fields-panel" aria-label="票据信息">
+        <div class="upload-section-card">
+            <div class="upload-section-title">
+                <span>基础信息</span>
+                <small>OCR 可自动填充，提交前请校对</small>
+            </div>
+            <div class="form-row">
+                <label for="type">票据类型 <span class="required">*</span></label>
+                <input type="text" list="typeOptions" id="type" name="type" required
+                       placeholder="如：车票、演出票、景区票、证书、自定义类型">
+                <datalist id="typeOptions">
+                    {% for t in types %}
+                    {% if t != '全部' %}
+                    <option value="{{ t }}"></option>
+                    {% endif %}
+                    {% endfor %}
+                </datalist>
+            </div>
+            <div class="form-row">
+                <label for="platform">来源平台</label>
+                <input type="text" id="platform" name="platform" placeholder="如：12306、大麦、猫眼">
+            </div>
+            <div class="form-row form-row--inline">
+                <div class="form-row-half">
+                    <label for="time">时间 <span class="required">*</span></label>
+                    <input type="date" id="time" name="time" required>
+                </div>
+                <div class="form-row-half">
+                    <label for="place">地点</label>
+                    <input type="text" id="place" name="place" placeholder="如：国家大剧院、北京南站">
+                </div>
+            </div>
+            <div class="form-row form-row--inline">
+                <div class="form-row-half">
+                    <label for="province">省份</label>
+                    <input type="text" id="province" name="province" placeholder="如：北京、上海">
+                </div>
+                <div class="form-row-half">
+                    <label for="city">城市</label>
+                    <input type="text" id="city" name="city" placeholder="如：北京、深圳">
+                </div>
+            </div>
+            <div class="form-row">
+                <label for="notes">备注</label>
+                <textarea id="notes" name="notes" rows="4" placeholder="票据背景、证书用途等"></textarea>
             </div>
         </div>
-        <div class="form-row">
-            <label for="ocr_text">OCR 识别全文（可编辑）</label>
-            <textarea id="ocr_text" name="ocr_text" rows="8" placeholder="识别完成后，全文将显示在此处；可手动增删改。"></textarea>
+        <input type="hidden" name="theme_color" id="theme_color" value="">
+        <div class="ocr-result-section upload-section-card" id="ocrResultSection">
+            <div class="upload-section-title">
+                <span>识别结果</span>
+                <small>全文单独保存，不会自动写入备注</small>
+            </div>
+            <p class="ocr-section-desc">自动识别后，结构化信息会填入上方字段；全文可在下方手动校对。</p>
+            <div class="ticket-theme-preview" id="themePreview" style="--preview-accent:#808080;">
+                <span class="theme-swatch" id="themeSwatch" aria-hidden="true"></span>
+                <div class="theme-preview-text">
+                    <strong id="themePreviewLabel">主题：通用票根</strong>
+                    <span class="theme-preview-hint" id="themePreviewHint">点击「自动识别」后根据关键词匹配主题色</span>
+                </div>
+            </div>
+            <div class="form-row">
+                <label for="ocr_text">OCR 识别全文（可编辑）</label>
+                <textarea id="ocr_text" name="ocr_text" rows="8" placeholder="识别完成后，全文将显示在此处；可手动增删改。"></textarea>
+            </div>
         </div>
-    </div>
-    <div class="form-actions">
-        <button type="button" id="ocrBtn" class="btn btn-ghost">自动识别</button>
-        <button type="submit" class="btn btn-primary">提交上传</button>
-        <a href="/list" class="btn btn-ghost">返回列表</a>
-    </div>
+        <div class="form-actions upload-actions">
+            <button type="button" id="ocrBtn" class="btn btn-ghost">自动识别</button>
+            <button type="submit" class="btn btn-primary">提交上传</button>
+            <a href="/list" class="btn btn-ghost">返回列表</a>
+        </div>
+    </section>
 </form>
 </div>
 <div id="toast" class="toast"></div>
