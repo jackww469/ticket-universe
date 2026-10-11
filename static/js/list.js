@@ -1,119 +1,223 @@
 /**
- * 列表页：按类型筛选、关键词搜索、卡片渲染
+ * 我的票夹：分类筛选、关键词搜索、新版卡片渲染
  */
 (function () {
     var filterBtns = document.getElementById('filterBtns');
     var searchInput = document.getElementById('searchInput');
-    var searchBtn = document.getElementById('searchBtn');
+    var searchClearBtn = document.getElementById('searchClearBtn');
     var cardGrid = document.getElementById('cardGrid');
     var listLoading = document.getElementById('listLoading');
     var emptyState = document.getElementById('emptyState');
+    var emptyDesc = document.getElementById('emptyDesc');
+    var walletCount = document.getElementById('walletCount');
 
     var currentType = '全部';
     var searchKeyword = '';
     var allData = [];
+    var page = 1, pages = 0, requestId = 0;
+    var filters = document.getElementById('advancedFilters');
+    var listStatus = document.getElementById('listStatus');
+
+    function esc(s) {
+        if (s == null) return '';
+        var d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML.replace(/"/g, '&quot;');
+    }
 
     function setLoading(loading) {
-        listLoading.style.display = loading ? 'block' : 'none';
-        emptyState.style.display = 'none';
+        if (!listLoading) return;
+        listLoading.style.display = loading ? 'flex' : 'none';
+        if (emptyState) emptyState.hidden = true;
+    }
+
+    function updateCount(n) {
+        if (walletCount) walletCount.textContent = n || 0;
     }
 
     function renderCards(data) {
-        cardGrid.querySelectorAll('.ticket-card').forEach(function (n) { n.remove(); });
+        // 移除之前的所有卡片
+        cardGrid.querySelectorAll('.wallet-card').forEach(function (n) { n.remove(); });
+        if (emptyState) emptyState.hidden = true;
+
         if (!data || !data.length) {
-            emptyState.style.display = 'block';
-            emptyState.querySelector('p').innerHTML = searchKeyword
-                ? '没有匹配的票据，试试其他关键词'
-                : '暂无票据，<a href="/upload">去上传</a>';
+
+            if (emptyDesc) {
+                emptyDesc.innerHTML = searchKeyword
+                    ? '没有匹配的票据，试试其他关键词'
+                    : '还没有收藏任何票据，<a href="/upload">去上传第一张</a>';
+            }
+            if (emptyState) emptyState.hidden = false;
             return;
         }
+
+
+
+        var frag = document.createDocumentFragment();
         data.forEach(function (item) {
-            var card = document.createElement('a');
-            card.href = '/detail/' + item.id;
-            card.className = 'ticket-card' + (item.type === '证书' ? ' card-cert' : '');
-            var tc = (item.theme_color || '').trim();
-            if (/^#[0-9A-Fa-f]{3,8}$/.test(tc)) {
-                card.style.borderLeft = '4px solid ' + tc;
-            }
-            var imgSrc = item.image_url || '';
-            var thumb = imgSrc
-                ? '<div class="card-thumb"><img src="' + escapeHtml(imgSrc) + '" alt=""></div>'
-                : '<div class="card-thumb"><img src="" alt="" onerror="this.style.display=\'none\'"></div>';
-            card.innerHTML = thumb +
-                '<div class="card-body">' +
-                '<div class="card-type">' + escapeHtml(item.type) + '</div>' +
-                '<div class="card-time">' + escapeHtml(item.time || '') + '</div>' +
-                '<div class="card-place">' + escapeHtml(item.place || '-') + '</div>' +
-                '</div>';
-            cardGrid.appendChild(card);
+            frag.appendChild(buildCard(item));
         });
+        cardGrid.appendChild(frag);
     }
 
-    function escapeHtml(s) {
-        if (s == null) return '';
-        var div = document.createElement('div');
-        div.textContent = s;
-        return div.innerHTML;
+    function buildCard(item) {
+        var card = document.createElement('a');
+        card.href = '/detail/' + item.id;
+        card.className = 'wallet-card' + (item.type === '证书' ? ' is-cert' : '');
+
+        // 主题色侧条
+        var tc = (item.theme_color || '').trim();
+        if (/^#[0-9A-Fa-f]{3,8}$/.test(tc)) {
+            card.style.setProperty('--card-theme', tc);
+        }
+
+        // 类型徽章
+        var typeText = esc(item.type || '其他');
+        var badge = '<span class="wallet-card-badge type-' + esc(item.type || '其他') + '">' + typeText + '</span>';
+
+        // 缩略图
+        var imgSrc = item.thumbnail_url || item.image_url || '';
+        var thumbHtml = imgSrc
+            ? '<img src="' + esc(imgSrc) + '" alt="" loading="lazy">'
+            : '<div class="wallet-card-thumb-empty" aria-hidden="true">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' +
+              '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 17l-5-5-9 9"/>' +
+              '</svg></div>';
+        var thumb = '<div class="wallet-card-thumb">' + badge + thumbHtml + '</div>';
+
+        // 元信息行（日期 + 平台）
+        var metaRow = '<div class="wallet-card-meta-row">' +
+            '<span class="wallet-card-date">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>' +
+            esc(item.time || '--') +
+            '</span>' +
+            (item.platform ? '<span class="wallet-card-platform">' + esc(item.platform) + '</span>' : '') +
+            '</div>';
+
+        // 地点
+        var place = esc(item.place || '未填写地点');
+
+        // 备注
+        var notes = item.notes
+            ? '<p class="wallet-card-notes">' + esc(item.notes) + '</p>'
+            : '';
+
+        // 底部（主题色 + 类型计数）
+        var themeSwatch = tc
+            ? '<span class="wallet-card-theme"><span class="wallet-card-theme-swatch" style="background:' + esc(tc) + '"></span>主题色</span>'
+            : '<span class="wallet-card-theme">¥ 收藏纪念</span>';
+
+        var foot = '<div class="wallet-card-foot">' +
+            themeSwatch +
+            '<span>查看详情 →</span>' +
+            '</div>';
+
+        card.innerHTML = thumb +
+            '<div class="wallet-card-body">' +
+            metaRow +
+            '<div class="wallet-card-place">' + place + '</div>' +
+            notes +
+            foot +
+            '</div>';
+
+        return card;
     }
 
     function loadList() {
+        var activeRequest = ++requestId;
         setLoading(true);
-        var url = searchKeyword
-            ? '/api/tickets/search?q=' + encodeURIComponent(searchKeyword) + '&type=' + encodeURIComponent(currentType)
-            : '/api/tickets?type=' + encodeURIComponent(currentType);
-        fetch(url)
-            .then(function (r) { return r.json(); })
+        listStatus.textContent = '';
+        var params = new URLSearchParams(new FormData(filters));
+        params.set('type', currentType); params.set('q', searchKeyword); params.set('page', page); params.set('per_page', 24);
+        document.getElementById('prevPage').disabled = true;
+        document.getElementById('nextPage').disabled = true;
+        fetch('/api/tickets?' + params.toString())
+            .then(function (r) { return r.json().then(function (res) { if (!r.ok || !res.success) throw new Error(res.message || '加载失败'); return res; }); })
             .then(function (res) {
+                if (activeRequest !== requestId) return;
                 setLoading(false);
-                if (res.success) {
-                    allData = res.data || [];
-                    renderCards(allData);
-                } else {
-                    renderCards([]);
-                }
-            })
-            .catch(function () {
+                allData = res.data || []; pages = res.pages || 0;
+                if (page > pages && pages > 0) { page = pages; loadList(); return; }
+                updateCount(res.total); renderCards(allData);
+                document.getElementById('pageInfo').textContent = pages ? page + ' / ' + pages + ' 页' : '暂无结果';
+                document.getElementById('prevPage').disabled = page <= 1;
+                document.getElementById('nextPage').disabled = page >= pages;
+                history.replaceState(null, '', '/list?' + params.toString());
+            }).catch(function (error) {
+                if (activeRequest !== requestId) return;
                 setLoading(false);
-                renderCards([]);
+                listStatus.textContent = error.message + '，请重新筛选重试。';
             });
     }
-
-    filterBtns.addEventListener('click', function (e) {
-        var btn = e.target.closest('.filter-btn');
-        if (!btn) return;
-        filterBtns.querySelectorAll('.filter-btn').forEach(function (b) { b.classList.remove('active'); });
-        btn.classList.add('active');
-        currentType = btn.getAttribute('data-type') || '全部';
-        searchKeyword = '';
-        searchInput.value = '';
-        loadList();
-    });
+    filters.addEventListener('submit', function (event) { event.preventDefault(); page = 1; searchKeyword = searchInput.value.trim(); loadList(); });
+    filters.addEventListener('reset', function () { setTimeout(function () { page = 1; loadList(); }, 0); });
+    document.getElementById('prevPage').onclick = function () { if (page > 1) { page--; loadList(); } };
+    document.getElementById('nextPage').onclick = function () { if (page < pages) { page++; loadList(); } };
 
     function doSearch() {
-        searchKeyword = searchInput.value.trim();
+        page = 1;
+        searchKeyword = searchInput ? searchInput.value.trim() : '';
+        toggleClear();
         loadList();
     }
 
-    searchBtn.addEventListener('click', doSearch);
-    searchInput.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') doSearch();
-    });
+    function toggleClear() {
+        if (!searchClearBtn) return;
+        var has = !!(searchInput && searchInput.value.trim());
+        var wrap = document.querySelector('.wallet-search');
+        if (wrap) wrap.classList.toggle('has-value', has);
+    }
+
+    if (filterBtns) {
+        filterBtns.addEventListener('click', function (e) {
+            var btn = e.target.closest('.wallet-tab');
+            if (!btn) return;
+            filterBtns.querySelectorAll('.wallet-tab').forEach(function (b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            currentType = btn.getAttribute('data-type') || '全部';
+            page = 1;
+            searchKeyword = searchInput.value.trim();
+            toggleClear();
+            loadList();
+        });
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') doSearch();
+        });
+        searchInput.addEventListener('input', toggleClear);
+    }
+
+    if (searchClearBtn) {
+        searchClearBtn.addEventListener('click', function () {
+            if (searchInput) searchInput.value = '';
+            searchKeyword = '';
+            page = 1;
+            toggleClear();
+            loadList();
+            if (searchInput) searchInput.focus();
+        });
+    }
 
     // 初始：根据 URL 参数设置筛选
     var params = new URLSearchParams(window.location.search);
     var typeParam = params.get('type');
     var qParam = params.get('q');
-    if (typeParam) {
+    ['date_from', 'date_to', 'province', 'city', 'platform'].forEach(function (key) { filters.elements[key].value = params.get(key) || ''; });
+    page = Math.max(1, parseInt(params.get('page'), 10) || 1);
+    if (typeParam && filterBtns) {
         currentType = typeParam;
-        var activeBtn = filterBtns.querySelector('[data-type="' + escapeHtml(typeParam) + '"]');
+        var activeBtn = Array.from(filterBtns.querySelectorAll('[data-type]')).find(function (b) { return b.getAttribute('data-type') === typeParam; });
         if (activeBtn) {
-            filterBtns.querySelectorAll('.filter-btn').forEach(function (b) { b.classList.remove('active'); });
+            filterBtns.querySelectorAll('.wallet-tab').forEach(function (b) { b.classList.remove('active'); });
             activeBtn.classList.add('active');
         }
     }
     if (qParam) {
         searchKeyword = qParam;
-        searchInput.value = qParam;
+        if (searchInput) searchInput.value = qParam;
     }
+    toggleClear();
     loadList();
 })();

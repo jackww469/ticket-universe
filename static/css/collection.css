@@ -1,0 +1,14 @@
+.collection-filters,.collection-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin:18px 0}
+.collection-filters label,.collection-panel label{display:flex;flex-direction:column;gap:6px;font-size:14px}
+.collection-filters input,.collection-control,.collection-dialog select{border:1px solid #d8c8ba;border-radius:8px;padding:9px;background:white;max-width:100%}
+.collection-filters input{width:150px}.collection-control{width:100%;margin:10px 0}
+.collection-panel{background:white;padding:24px;border:1px solid #eaded1;border-radius:16px;margin:24px 0}
+.collection-panel h2,.collection-dialog h2{font-size:22px;font-weight:700;margin-bottom:12px}
+.collection-hint,.collection-panel p{color:#78695e;font-size:14px;margin:12px 0}
+.collection-trash{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+.collection-trash-card{border:1px solid #eaded1;padding:16px;border-radius:12px}
+.collection-trash-card img{width:100%;height:140px;object-fit:contain}.collection-trash-card p{overflow-wrap:anywhere}
+.collection-dialog{padding:24px;border-radius:16px;width:min(680px,92vw);max-height:85vh;overflow:auto;border:1px solid #d8c8ba;margin:auto}
+.collection-dialog::backdrop{background:#0007}.ocr-review-field{display:block;padding:12px 0;border-bottom:1px solid #eee;white-space:pre-wrap;overflow-wrap:anywhere}
+button:disabled{opacity:.5;cursor:wait}.collection-notice{padding:12px;background:#fff4de;border-radius:8px;margin:12px 0}
+@media(max-width:640px){.collection-filters label{flex:1 1 40%}.collection-filters input{width:100%}.collection-panel{padding:16px}}

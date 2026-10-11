@@ -2,6 +2,10 @@
 """电子票夹博物馆系统 - Flask 主程序"""
 import os
 import time as time_mod
+from pathlib import Path
+from media_service import save_image, inspect_image, remove_media, local_image
+from locations import LOCATIONS
+from database import query_tickets, validate_ticket, save_ticket_record, duplicate_image, get_db
 from flask import Flask, request, jsonify, render_template, send_from_directory, redirect, url_for, abort
 
 from werkzeug.utils import secure_filename
@@ -31,6 +35,13 @@ from database import (
 )
 from ocr_service import extract_ticket_fields
 from auth_utils import login_required, login_user, logout_user, current_user_id
+from semantic_service import (
+    SemanticServiceError,
+    answer_memory_query,
+    refresh_user_index,
+    search_user_tickets,
+    semantic_enabled,
+)
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
@@ -51,6 +62,7 @@ def row_to_dict(row):
     d = dict(row)
     if 'image_path' in d and d['image_path']:
         d['image_url'] = '/' + d['image_path'].replace('\\', '/')
+        d['thumbnail_url'] = '/api/tickets/' + str(d['id']) + '/thumbnail'
     return d
 
 
@@ -145,7 +157,28 @@ def map_page():
 @app.route('/stats')
 @login_required
 def stats_page():
-    return render_template('stats.html', types=TICKET_TYPES, current_page='stats')
+    uid = current_user_id()
+    try:
+        stats = get_yearly_stats(uid)
+    except Exception:
+        stats = {}
+    return render_template(
+        'stats.html',
+        types=TICKET_TYPES,
+        current_page='stats',
+        current_year=stats.get('current_year', ''),
+        available_years=stats.get('available_years', []),
+    )
+
+
+@app.route('/memory')
+@login_required
+def memory_page():
+    return render_template(
+        'memory.html',
+        current_page='memory',
+        semantic_enabled=semantic_enabled(),
+    )
 
 
 # ---------- 图片访问（仅本人数据）----------
@@ -181,74 +214,118 @@ def uploaded_file(relative):
 @app.route('/api/tickets', methods=['POST'])
 @login_required
 def api_upload():
-    uid = current_user_id()
-    data = request.form
-    type_ = data.get('type', '').strip()
-    platform = data.get('platform', '').strip()
-    time_ = data.get('time', '').strip()
-    place = data.get('place', '').strip()
-    notes = data.get('notes', '').strip()
-    ocr_text = data.get('ocr_text', '').strip()
-    theme_color = data.get('theme_color', '').strip()
-    province = data.get('province', '').strip()
-    city = data.get('city', '').strip()
-    if not type_:
-        return jsonify({'success': False, 'message': '请输入票据类型'}), 400
-    if not time_:
-        return jsonify({'success': False, 'message': '请选择时间'}), 400
-    image_path = None
-    if 'image' in request.files:
-        f = request.files['image']
-        if f and f.filename and allowed_file(f.filename):
-            filename = secure_filename(f.filename)
-            base, ext = os.path.splitext(filename)
-            filename = f"{base}_{int(time_mod.time() * 1000)}{ext}"
-            user_dir = os.path.join(UPLOAD_FOLDER, str(uid))
-            os.makedirs(user_dir, exist_ok=True)
-            path = os.path.join(user_dir, filename)
-            f.save(path)
-            image_path = f'static/uploads/{uid}/{filename}'.replace('\\', '/')
+    media = None
     try:
-        tid = add_ticket(uid, type_, platform, time_, place, notes, image_path, ocr_text, theme_color, province, city)
-        return jsonify({'success': True, 'id': tid, 'message': '上传成功'})
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        uid = current_user_id()
+        fields = validate_ticket(request.form)
+        f = request.files.get('image')
+        if f and f.filename:
+            image = f.read()
+            _, digest = inspect_image(image)
+            duplicate = find_duplicate(uid, digest)
+            if duplicate and request.form.get('allow_duplicate') != '1':
+                return jsonify(success=False, message='这张图片已收藏', duplicate=duplicate), 409
+            media = save_image(image, uid, app.config['UPLOAD_FOLDER'])
+        tid = save_ticket_record(uid, fields, media)
+        return jsonify(success=True, id=tid, message='上传成功')
+    except ValueError as e:
+        return jsonify(success=False, message=str(e)), 400
+    except Exception:
+        if media:
+            remove_media(media, app.config['UPLOAD_FOLDER'])
+        app.logger.exception('Upload failed')
+        return jsonify(success=False, message='保存失败，请重试'), 500
 
 
 @app.route('/api/tickets')
 @login_required
 def api_list():
-    uid = current_user_id()
-    type_ = request.args.get('type', '全部')
-    data = get_tickets_by_type(type_, uid)
-    for item in data:
-        if item.get('image_path'):
-            item['image_url'] = '/' + item['image_path'].replace('\\', '/')
-    return jsonify({'success': True, 'data': data})
+    try:
+        result = query_tickets(current_user_id(), request.args)
+        result['data'] = [row_to_dict(row) for row in result['data']]
+        return jsonify(success=True, **result)
+    except ValueError as e:
+        return jsonify(success=False, message=str(e)), 400
 
 
 @app.route('/api/tickets/timeline')
 @login_required
 def api_timeline():
     uid = current_user_id()
-    data = get_tickets_by_time(uid)
-    for item in data:
-        if item.get('image_path'):
-            item['image_url'] = '/' + item['image_path'].replace('\\', '/')
-    return jsonify({'success': True, 'data': data})
+    years = get_yearly_stats(uid)['available_years']
+    year = request.args.get('year') or (years[0] if years else '')
+    if year not in years:
+        return jsonify(success=False, message='请选择有效年份'), 400
+    with get_db() as conn:
+        data = conn.execute("SELECT * FROM active_tickets WHERE user_id=? AND strftime('%Y', time)=? ORDER BY time, id", (uid, year)).fetchall()
+    return jsonify(success=True, data=[row_to_dict(row) for row in data], years=years, year=year)
 
 
 @app.route('/api/tickets/search')
 @login_required
 def api_search():
-    uid = current_user_id()
-    keyword = request.args.get('q', '')
-    type_ = request.args.get('type', '全部')
-    data = search_tickets(keyword, uid, type_=type_)
-    for item in data:
-        if item.get('image_path'):
-            item['image_url'] = '/' + item['image_path'].replace('\\', '/')
-    return jsonify({'success': True, 'data': data})
+    return api_list()
+
+
+@app.route('/api/semantic/search')
+@login_required
+def api_semantic_search():
+    try:
+        result = search_user_tickets(
+            current_user_id(),
+            request.args.get('q', ''),
+            app.config['UPLOAD_FOLDER'],
+            limit=request.args.get('limit', 12),
+        )
+        result['data'] = [row_to_dict(row) for row in result['data']]
+        return jsonify(success=True, **result)
+    except (ValueError, TypeError):
+        return jsonify(success=False, message='检索参数无效'), 400
+    except Exception:
+        app.logger.exception('Semantic search failed')
+        return jsonify(success=False, message='检索失败，请稍后重试'), 500
+
+
+@app.route('/api/memory/query', methods=['POST'])
+@login_required
+def api_memory_query():
+    payload = request.get_json(silent=True) or {}
+    try:
+        result = answer_memory_query(
+            current_user_id(),
+            payload.get('query', ''),
+            app.config['UPLOAD_FOLDER'],
+        )
+        result['results'] = [row_to_dict(row) for row in result['results']]
+        return jsonify(success=True, **result)
+    except ValueError as exc:
+        return jsonify(success=False, message=str(exc)), 400
+    except Exception:
+        app.logger.exception('Memory RAG query failed')
+        return jsonify(success=False, message='记忆检索失败，请稍后重试'), 500
+
+
+@app.route('/api/semantic/reindex', methods=['POST'])
+@login_required
+def api_semantic_reindex():
+    if not semantic_enabled():
+        return jsonify(
+            success=False,
+            message='未配置 DASHSCOPE_API_KEY，当前使用本地关键词模式',
+        ), 400
+    try:
+        result = refresh_user_index(
+            current_user_id(),
+            app.config['UPLOAD_FOLDER'],
+            force=True,
+            include_visual=True,
+        )
+        return jsonify(success=True, data=result, message='阿里云百炼图文语义索引已更新')
+    except SemanticServiceError:
+        return jsonify(success=False, message='智能服务暂时不可用，请稍后重试'), 503
+    except Exception:
+        app.logger.exception('Semantic reindex failed')
+        return jsonify(success=False, message='索引更新失败，请稍后重试'), 500
 
 
 @app.route('/api/stats/mini')
@@ -347,58 +424,40 @@ def api_update(ticket_id):
     uid = current_user_id()
     row = get_ticket_by_id(ticket_id, uid)
     if not row:
-        return jsonify({'success': False, 'message': '票据不存在'}), 404
-    data = request.form
-    type_ = data.get('type', '').strip()
-    platform = data.get('platform', '').strip()
-    time_ = data.get('time', '').strip()
-    place = data.get('place', '').strip()
-    notes = data.get('notes', '').strip()
-    ocr_text = data.get('ocr_text', '').strip()
-    theme_color = data.get('theme_color', '').strip()
-    province = data.get('province', '').strip()
-    city = data.get('city', '').strip()
-    if not type_:
-        return jsonify({'success': False, 'message': '请输入票据类型'}), 400
-    if not time_:
-        return jsonify({'success': False, 'message': '请选择时间'}), 400
-    image_path = None
-    if 'image' in request.files:
-        f = request.files['image']
-        if f and f.filename and allowed_file(f.filename):
-            filename = secure_filename(f.filename)
-            base, ext = os.path.splitext(filename)
-            filename = f"{base}_{int(time_mod.time() * 1000)}{ext}"
-            user_dir = os.path.join(UPLOAD_FOLDER, str(uid))
-            os.makedirs(user_dir, exist_ok=True)
-            path = os.path.join(user_dir, filename)
-            f.save(path)
-            image_path = f'static/uploads/{uid}/{filename}'.replace('\\', '/')
+        return jsonify(success=False, message='票据不存在'), 404
+    media = None
     try:
-        ok = update_ticket(ticket_id, uid, type_, platform, time_, place, notes, image_path, ocr_text, theme_color, province, city)
-        if not ok:
-            return jsonify({'success': False, 'message': '票据不存在'}), 404
-        return jsonify({'success': True, 'message': '更新成功'})
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        fields = validate_ticket(request.form)
+        f = request.files.get('image')
+        if f and f.filename:
+            image = f.read()
+            _, digest = inspect_image(image)
+            duplicate = find_duplicate(uid, digest, ticket_id)
+            if duplicate and request.form.get('allow_duplicate') != '1':
+                return jsonify(success=False, message='这张图片已收藏', duplicate=duplicate), 409
+            media = save_image(image, uid, app.config['UPLOAD_FOLDER'])
+        if not save_ticket_record(uid, fields, media, ticket_id):
+            if media:
+                remove_media(media, app.config['UPLOAD_FOLDER'])
+            return jsonify(success=False, message='票据不存在'), 404
+    except ValueError as e:
+        return jsonify(success=False, message=str(e)), 400
+    except Exception:
+        if media:
+            remove_media(media, app.config['UPLOAD_FOLDER'])
+        app.logger.exception('Update failed')
+        return jsonify(success=False, message='更新失败，请重试'), 500
+    if media:
+        remove_media(row, app.config['UPLOAD_FOLDER'])
+    return jsonify(success=True, message='更新成功')
 
 
 @app.route('/api/tickets/<int:ticket_id>', methods=['DELETE'])
 @login_required
 def api_delete(ticket_id):
-    uid = current_user_id()
-    row = get_ticket_by_id(ticket_id, uid)
-    if not row:
-        return jsonify({'success': False, 'message': '票据不存在'}), 404
-    old_path = delete_ticket(ticket_id, uid)
-    if old_path:
-        full = os.path.join(os.path.dirname(__file__), old_path)
-        if os.path.isfile(full):
-            try:
-                os.remove(full)
-            except OSError:
-                pass
-    return jsonify({'success': True, 'message': '删除成功'})
+    if not delete_ticket(ticket_id, current_user_id()):
+        return jsonify(success=False, message='票据不存在'), 404
+    return jsonify(success=True, message='已移入回收站，30 天内可恢复')
 
 
 @app.route('/api/tickets/<int:ticket_id>/notes', methods=['PATCH'])
@@ -430,8 +489,10 @@ def api_cities():
 def api_yearly():
     uid = current_user_id()
     try:
-        stats = get_yearly_stats(uid)
+        stats = get_yearly_stats(uid, request.args.get('year'))
         return jsonify({'success': True, 'data': stats})
+    except ValueError as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
@@ -445,6 +506,10 @@ def api_map():
         if item.get('image_path'):
             item['image_url'] = '/' + item['image_path'].replace('\\', '/')
     return jsonify({'success': True, 'data': data})
+
+
+from collection_routes import collection, find_duplicate
+app.register_blueprint(collection)
 
 
 if __name__ == '__main__':

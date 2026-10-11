@@ -5,8 +5,6 @@ setlocal
 REM 切换到脚本所在目录
 cd /d "%~dp0"
 
-set BAIDU_OCR_API_KEY=Q7gBb9yG8wlm7YKMXNAG2fKu
-set BAIDU_OCR_SECRET_KEY=obgzUC1RcIMrhw38G2zlE38OnH6tVkku
 
 echo [1/3] 检查虚拟环境...
 if not exist ".venv\Scripts\python.exe" (

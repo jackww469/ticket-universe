@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}记忆探索{% endblock %}
+{% block body_class %}memory-page{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="/static/css/memory.css">
+{% endblock %}
+
+{% block content %}
+<section class="memory-shell" data-semantic-enabled="{{ 'true' if semantic_enabled else 'false' }}">
+    <header class="memory-hero">
+        <div>
+            <p class="memory-eyebrow">SEMANTIC MEMORY</p>
+            <h1>用一句话，重新遇见你的收藏</h1>
+            <p class="memory-intro">系统会综合票面文字、地点、时间和备注寻找相关票券，并且只根据真实收藏回答。</p>
+        </div>
+        <div class="memory-mode" id="memoryMode">
+            <span class="memory-mode-dot"></span>
+            <span>{{ '百炼图文语义模式' if semantic_enabled else '本地关键词模式' }}</span>
+        </div>
+    </header>
+
+    <div class="memory-layout">
+        <section class="memory-query-panel" aria-labelledby="memoryQueryTitle">
+            <div class="memory-panel-heading">
+                <div>
+                    <p class="memory-section-label">ASK YOUR ARCHIVE</p>
+                    <h2 id="memoryQueryTitle">你想回忆什么？</h2>
+                </div>
+                {% if semantic_enabled %}
+                <button type="button" class="memory-reindex" id="memoryReindex">重建图文索引</button>
+                {% endif %}
+            </div>
+
+            <form id="memoryForm">
+                <label class="sr-only" for="memoryQuery">输入记忆问题</label>
+                <textarea id="memoryQuery" maxlength="300" rows="4" placeholder="例如：去年夏天我在南方收藏过哪些票券？" required></textarea>
+                <div class="memory-form-actions">
+                    <span id="memoryCounter">0 / 300</span>
+                    <button type="submit" class="memory-submit" id="memorySubmit">
+                        <span>探索记忆</span>
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                </div>
+            </form>
+
+            <div class="memory-examples" aria-label="示例问题">
+                <span>可以这样问</span>
+                <button type="button" data-memory-example="我去过哪些城市？">我去过哪些城市？</button>
+                <button type="button" data-memory-example="找出和演出有关的收藏">找出和演出有关的收藏</button>
+                <button type="button" data-memory-example="最近的旅行留下了什么票券？">最近的旅行留下了什么票券？</button>
+            </div>
+            <p class="memory-warning" id="memoryWarning" role="status" aria-live="polite"></p>
+        </section>
+
+        <aside class="memory-guide">
+            <p class="memory-section-label">HOW IT WORKS</p>
+            <h2>答案从哪里来</h2>
+            <ol>
+                <li><span>1</span><div><strong>理解问题</strong><p>识别时间、地点、类型和语义意图。</p></div></li>
+                <li><span>2</span><div><strong>查找票券</strong><p>融合向量相似度与关键词命中排序。</p></div></li>
+                <li><span>3</span><div><strong>有据讲述</strong><p>答案引用具体票券，不补写收藏之外的事实。</p></div></li>
+            </ol>
+        </aside>
+    </div>
+
+    <section class="memory-output" id="memoryOutput" hidden>
+        <article class="memory-answer-card">
+            <div class="memory-answer-head">
+                <div>
+                    <p class="memory-section-label">GROUNDED MEMORY</p>
+                    <h2 id="memoryAnswerTitle">个人记忆</h2>
+                </div>
+                <span class="memory-answer-mode" id="memoryAnswerMode"></span>
+            </div>
+            <p class="memory-answer-text text-selectable" id="memoryAnswerText"></p>
+            <div class="memory-citations" id="memoryCitations"></div>
+            <div class="memory-followups" id="memoryFollowups"></div>
+        </article>
+
+        <div class="memory-results-head">
+            <div>
+                <p class="memory-section-label">SOURCE TICKETS</p>
+                <h2>相关票券</h2>
+            </div>
+            <span id="memoryResultCount"></span>
+        </div>
+        <div class="memory-results" id="memoryResults"></div>
+    </section>
+
+    <section class="memory-empty" id="memoryEmpty">
+        <div class="memory-empty-mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48"><path d="M9 10h24a6 6 0 0 1 6 6v22H15a6 6 0 0 1-6-6V10Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15 16h17M15 22h13M15 28h9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <h2>你的收藏正在等待被重新讲述</h2>
+        <p>输入一个问题，相关票券和它们承载的记忆会出现在这里。</p>
+    </section>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/memory.js"></script>
+{% endblock %}

@@ -15,7 +15,7 @@
                 <span>≤5MB</span>
             </div>
             <div class="upload-area" id="uploadArea">
-                <input type="file" id="image" name="image" accept="image/*" hidden>
+                <input type="file" id="image" name="image" accept="image/*" multiple hidden>
                 <div class="upload-placeholder" id="uploadPlaceholder">
                     <span class="upload-icon">📷</span>
                     <strong>点击或拖拽上传图片</strong>
@@ -26,6 +26,11 @@
                     <button type="button" class="preview-remove" id="previewRemove">移除图片</button>
                 </div>
             </div>
+            <p class="collection-hint">每批最多 20 张，每张 ≤5MB。选择队列中的图片可逐张编辑信息。</p>
+            <label for="uploadQueue">待上传图片</label>
+            <select id="uploadQueue" class="collection-control" aria-label="选择待上传图片"></select>
+            <button type="button" id="copyBatchFields" class="btn btn-ghost">将当前类型、日期、平台和省市应用到待上传图片</button>
+            <p id="uploadStatus" role="status" aria-live="polite"></p>
             <div class="upload-guide-strip" aria-hidden="true">
                 <span>上传</span>
                 <span>识别</span>
@@ -87,7 +92,7 @@
                 <span>识别结果</span>
                 <small>全文单独保存，不会自动写入备注</small>
             </div>
-            <p class="ocr-section-desc">自动识别后，结构化信息会填入上方字段；全文可在下方手动校对。</p>
+            <p class="ocr-section-desc">识别当前选中的图片，预览并选择要应用的字段；已有内容不会自动覆盖。</p>
             <div class="ticket-theme-preview" id="themePreview" style="--preview-accent:#808080;">
                 <span class="theme-swatch" id="themeSwatch" aria-hidden="true"></span>
                 <div class="theme-preview-text">
@@ -102,14 +107,23 @@
         </div>
         <div class="form-actions upload-actions">
             <button type="button" id="ocrBtn" class="btn btn-ghost">自动识别</button>
-            <button type="submit" class="btn btn-primary">提交上传</button>
+            <button type="submit" id="uploadSubmit" class="btn btn-primary">上传队列</button>
             <a href="/list" class="btn btn-ghost">返回列表</a>
         </div>
     </section>
 </form>
 </div>
 <div id="toast" class="toast"></div>
+<dialog id="ocrReview" class="collection-dialog">
+    <h2>校对识别结果</h2>
+    <p>空白字段默认选中；覆盖已有内容需勾选对应字段。</p>
+    <p id="ocrLocationWarning" role="status"></p>
+    <label>候选地点 <select id="ocrLocations"><option value="">请手动校对</option></select></label>
+    <div id="ocrFields"></div>
+    <div class="collection-actions"><button type="button" id="ocrApply" class="btn btn-primary">应用所选字段</button><button type="button" id="ocrCancel" class="btn btn-ghost">取消</button></div>
+</dialog>
 {% endblock %}
 {% block scripts %}
+<script src="/static/js/locations.js"></script>
 <script src="/static/js/upload.js"></script>
 {% endblock %}

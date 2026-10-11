@@ -11,11 +11,16 @@
             <h1 class="text-4xl font-bold text-brand-brown mb-4 tracking-tight font-serif">票夹博物馆</h1>
             <p class="text-gray-500 mb-8 text-lg">珍藏每一张票根，记录每一次出发</p>
             <!-- Search Bar -->
-            <div class="flex items-center bg-white rounded-full p-1.5 shadow-sm max-w-md">
-                <div class="flex items-center px-4 border-r border-gray-100">
-                    <span class="text-sm text-gray-600">全部</span>
-                    <svg class="w-4 h-4 ml-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
-                </div>
+            <div class="flex items-center bg-white rounded-full p-1.5 shadow-sm max-w-md relative" id="homeSearchBar">
+                <button type="button" id="homeSearchTypeBtn" class="flex items-center px-4 border-r border-gray-100 text-sm text-gray-600 hover:text-brand-brown transition-colors cursor-pointer">
+                    <span id="homeSearchTypeLabel">全部</span>
+                    <svg id="homeSearchTypeChevron" class="w-4 h-4 ml-2 text-gray-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+                </button>
+                <ul id="homeSearchTypeMenu" class="absolute top-full left-0 mt-2 bg-white rounded-xl shadow-lg border border-gray-100 py-1 w-32 z-30 hidden">
+                    {% for t in types %}
+                    <li><button type="button" class="home-type-item block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-brand-light hover:text-brand-brown{% if loop.first %} active{% endif %}" data-type="{{ t }}">{{ t }}</button></li>
+                    {% endfor %}
+                </ul>
                 <input id="homeSearchKeyword" class="flex-grow px-4 border-none focus:ring-0 text-sm placeholder-gray-400" placeholder="搜索关键词、地点或日期..." type="text">
                 <button id="homeSearchBtn" class="bg-brand-brown text-white px-8 py-2.5 rounded-full text-sm font-medium hover:bg-opacity-90 transition-all">
                     搜索
@@ -71,7 +76,7 @@
             </div>
             <div>
                 <div class="text-xl font-bold text-gray-400" id="statLatest">--</div>
-                <div class="text-sm text-gray-400">最近更新 <span class="block text-xs" id="statLatestNote">暂无记录</span></div>
+                <div class="text-sm text-gray-400">最近收藏 <span class="block text-xs" id="statLatestNote">暂无记录</span></div>
             </div>
         </div>
     </section>
@@ -237,7 +242,7 @@
             </div>
             <div class="flex items-center justify-between">
                 <div class="space-y-2">
-                    <p class="text-gray-600 text-sm">距离你第一次收藏票根已经</p>
+                    <p class="text-gray-600 text-sm" id="memoryCaption">距离你第一次收藏票根已经</p>
                     <div class="flex items-baseline space-x-2">
                         <span class="text-5xl font-bold text-brand-brown" id="memoryDays">--</span>
                         <span class="text-lg text-brand-brown">天</span>

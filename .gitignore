@@ -31,3 +31,12 @@ static/uploads/*
 
 # Logs
 *.log
+
+# Local dependency packages
+wheels/
+*.whl
+
+# Local environment secrets
+.env
+.env.*
+!.env.example

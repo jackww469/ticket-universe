@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}备份与回收站{% endblock %}
+{% block content %}
+<section class="wallet-page-wrap">
+    <h1 class="wallet-title">备份与回收站</h1>
+    <a href="/list" class="btn btn-ghost">返回票夹</a>
+    <section class="collection-panel">
+        <h2>导出与恢复</h2>
+        <p>备份包含全部在册票据信息和原图，不包含回收站。恢复会添加到当前账户，不覆盖原有记录；完全相同的记录会跳过。</p>
+        <div class="collection-actions">
+            <a href="/api/backup/export" class="btn btn-primary">下载 ZIP 备份</a>
+            <form id="restoreBackup"><label>选择备份 ZIP（≤100MB，最多 1000 张）<input type="file" name="backup" accept=".zip" required></label><button class="btn btn-ghost" type="submit">恢复备份</button></form>
+        </div>
+        <p id="backupStatus" role="status" aria-live="polite"></p>
+    </section>
+    <section class="collection-panel">
+        <h2>回收站</h2>
+        <p>移入回收站的票据不参与列表和统计，30 天内可恢复。到期后无法恢复，可手动永久删除；永久删除会一并移除图片。</p>
+        <button id="refreshTrash" class="btn btn-ghost">刷新</button>
+        <p id="trashStatus" role="status" aria-live="polite"></p>
+        <div id="trashList" class="collection-trash"></div>
+    </section>
+</section>
+{% endblock %}
+{% block scripts %}<script src="/static/js/collection.js"></script>{% endblock %}

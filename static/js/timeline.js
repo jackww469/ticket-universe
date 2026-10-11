@@ -360,7 +360,7 @@
             var active = x.id === selectedId ? 'is-active' : '';
             if (x.image_url) {
                 galleryHtml += '<div class="tl2-gallery-thumb ' + active + '" data-id="' + x.id + '">';
-                galleryHtml += '<img src="' + esc(x.image_url) + '" alt="">';
+                galleryHtml += '<img src="' + esc(x.thumbnail_url || x.image_url) + '" alt="">';
                 galleryHtml += '</div>';
             }
         });
@@ -481,27 +481,34 @@
         }
     }
 
-    fetch('/api/tickets/timeline')
-        .then(function (r) { return r.json(); })
-        .then(function (res) {
-            loadingEl.style.display = 'none';
-            if (!res.success || !res.data || !res.data.length) {
-                emptyEl.style.display = 'flex';
-                return;
-            }
-            emptyEl.style.display = 'none';
-            sidebarEl.style.display = 'flex';
-            viewerEl.style.display = 'flex';
-
-            allData = (res.data || []).slice().sort(function (a, b) {
-                return String(a.time || '').localeCompare(String(b.time || ''));
+    var yearSelect = document.getElementById('timelineYear');
+    var timelineStatus = document.getElementById('timelineStatus');
+    var loadId = 0;
+    function loadTimeline(year) {
+        var currentLoad = ++loadId;
+        timelineStatus.textContent = '正在加载…';
+        fetch('/api/tickets/timeline' + (year ? '?year=' + encodeURIComponent(year) : ''))
+            .then(function (r) { if (!r.ok) throw new Error('请求失败'); return r.json(); })
+            .then(function (res) {
+                if (currentLoad !== loadId) return;
+                if (!res.success) throw new Error(res.message || '请求失败');
+                yearSelect.replaceChildren();
+                res.years.forEach(function (year) { var option = document.createElement('option'); option.value = year; option.textContent = year + ' 年'; yearSelect.appendChild(option); });
+                yearSelect.value = res.year;
+                loadingEl.style.display = 'none';
+                sidebarEl.style.display = 'flex'; viewerEl.style.display = 'flex';
+                emptyEl.style.display = 'none';
+                allData = res.data || []; selectedId = null;
+                initMonthFilter(allData); applyFilter();
+                timelineStatus.textContent = allData.length ? '本年 ' + allData.length + ' 张；搜索范围为所选年份。' : '所选年份暂无票据，可切换年份查看。';
+            }).catch(function () {
+                if (currentLoad !== loadId) return;
+                timelineStatus.textContent = '加载失败，请重新选择年份或点击重试。';
+                loadingEl.style.display = 'none';
             });
-            initMonthFilter(allData);
-            bindEvents();
-            applyFilter();
-        })
-        .catch(function () {
-            loadingEl.style.display = 'none';
-            emptyEl.style.display = 'flex';
-        });
+    }
+    yearSelect.onchange = function () { loadTimeline(yearSelect.value); };
+    document.getElementById('timelineRetry').onclick = function () { loadTimeline(yearSelect.value); };
+    bindEvents();
+    loadTimeline();
 })();

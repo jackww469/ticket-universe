@@ -400,7 +400,7 @@
     var chart = null;
 
     // 数据状态
-    var allData = [];
+
     var cityStats = { provinces: [], cities: [] };
     var chinaJson = null;
 
@@ -445,7 +445,7 @@
     // ==================== 获取已访问省份 ====================
     function getVisitedProvinces() {
         var visited = {};
-        cityStats.cities.forEach(function (c) {
+        cityStats.provinces.forEach(function (c) {
             if (c.province && PROVINCE_MAP[c.province]) {
                 visited[PROVINCE_MAP[c.province]] = true;
             }
@@ -462,16 +462,7 @@
         cityStats.cities.forEach(function (c) {
             var coords = CITY_COORDINATES[c.city];
             if (coords) {
-                // 获取该城市的票据数和最近日期
-                var tickets = allData.filter(function (t) { return t.city === c.city; });
-                var latestDate = '';
-                if (tickets.length > 0) {
-                    tickets.sort(function (a, b) {
-                        return (b.time || '').localeCompare(a.time || '');
-                    });
-                    latestDate = tickets[0].time || '';
-                }
-
+                var latestDate = c.time || '';
                 citiesWithCoords.push({
                     name: c.city,
                     value: coords.concat([c.count || 1]),
@@ -480,14 +471,15 @@
                     latestDate: latestDate
                 });
             } else {
-                skipped.push(c.city);
+                skipped.push((c.province ? c.province + ' / ' : '') + c.city);
             }
         });
 
-        if (skipped.length > 0) {
-            console.warn('[足迹地图] 以下城市没有坐标数据:', skipped.join(', '));
+        var notice = document.getElementById('mapLocationNotice');
+        if (notice) {
+            notice.hidden = !skipped.length;
+            notice.textContent = skipped.length ? '以下地点已计入统计，但暂无地图坐标：' + skipped.join('、') + '。可在票夹中筛选并编辑省市。' : '';
         }
-
         return citiesWithCoords;
     }
 
@@ -707,13 +699,7 @@
         statCities.textContent = cityStats.total_cities || 0;
         statProvinces.textContent = cityStats.total_provinces || 0;
 
-        var totalTickets = 0;
-        if (cityStats.cities && cityStats.cities.length) {
-            totalTickets = cityStats.cities.reduce(function (sum, c) {
-                return sum + (c.count || 0);
-            }, 0);
-        }
-        statTotal.textContent = totalTickets;
+        statTotal.textContent = cityStats.total_tickets || 0;
     }
 
     // ==================== 初始化 ====================
@@ -721,16 +707,11 @@
         mapLoading.style.display = 'none';
 
         Promise.all([
-            fetch('/api/tickets/map').then(function (r) { return r.json(); }),
             fetch('/api/stats/cities').then(function (r) { return r.json(); }),
             loadChinaGeoJson()
         ]).then(function (results) {
-            var mapRes = results[0];
-            var cityRes = results[1];
-
-            if (mapRes.success && mapRes.data) {
-                allData = mapRes.data;
-            }
+            var cityRes = results[0];
+            if (!cityRes.success) throw new Error(cityRes.message || '地图数据加载失败');
             if (cityRes.success && cityRes.data) {
                 cityStats = cityRes.data;
             }

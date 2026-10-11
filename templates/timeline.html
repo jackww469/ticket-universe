@@ -10,6 +10,11 @@
 {% endblock %}
 {% block body_class %}timeline-page{% endblock %}
 {% block content %}
+<div class="collection-actions" style="padding:0 24px">
+    <label for="timelineYear">浏览年份</label><select id="timelineYear" class="collection-control" style="width:auto"></select>
+    <button id="timelineRetry" type="button" class="btn btn-ghost">重新加载</button>
+    <span id="timelineStatus" role="status" aria-live="polite"></span>
+</div>
 <!-- BEGIN: MainContentArea -->
 <main class="tl2-main-wrap">
     <!-- BEGIN: LeftSidebar -->

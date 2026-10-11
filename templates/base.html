@@ -52,6 +52,7 @@
         }
     </style>
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/collection.css">
     {% block head %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
@@ -71,6 +72,7 @@
                 <a class="relative text-brand-brown font-bold {% if current_page == 'list' %}nav-link-active{% else %}hover:text-brand-brown transition-colors{% endif %}" href="{{ url_for('list_page') }}">我的票夹</a>
                 <a class="relative text-brand-brown font-bold {% if current_page == 'timeline' %}nav-link-active{% else %}hover:text-brand-brown transition-colors{% endif %}" href="{{ url_for('timeline_page') }}">时间轴日记</a>
                 <a class="relative text-brand-brown font-bold {% if current_page == 'map' %}nav-link-active{% else %}hover:text-brand-brown transition-colors{% endif %}" href="{{ url_for('map_page') }}">足迹地图</a>
+                <a class="relative text-brand-brown font-bold {% if current_page == 'memory' %}nav-link-active{% else %}hover:text-brand-brown transition-colors{% endif %}" href="{{ url_for('memory_page') }}">记忆探索</a>
                 <a class="relative text-brand-brown font-bold {% if current_page == 'stats' %}nav-link-active{% else %}hover:text-brand-brown transition-colors{% endif %}" href="{{ url_for('stats_page') }}">年度统计</a>
             </nav>
             <!-- Right Side Actions -->
